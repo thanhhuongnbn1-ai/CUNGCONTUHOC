@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    background-color: #FFF9F3;
+    color: #1F2937;
+  }
+}
+
+/* Custom Primary School EdTech Scrollbars & Animations */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FFF0E0;
+}
+::-webkit-scrollbar-thumb {
+  background: #FF9E59;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF6600;
+}
+
+.grade-card-shadow {
+  box-shadow: 0 10px 25px -5px rgba(255, 102, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.kid-btn {
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.kid-btn:hover {
+  transform: translateY(-2px);
+}
+.kid-btn:active {
+  transform: translateY(1px);
+}
