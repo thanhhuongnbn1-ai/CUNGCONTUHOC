@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, MessageCircle, BarChart3, User, LogOut, ShieldCheck, GraduationCap, PlusCircle } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, BarChart3, User, LogOut, ShieldCheck, GraduationCap, PlusCircle, Users } from 'lucide-react';
 
 export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
   const location = useLocation();
@@ -51,6 +51,16 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
             </Link>
 
             <Link
+              to="/classes"
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                isActive('/classes') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>QUẢN LÝ LỚP HỌC</span>
+            </Link>
+
+            <Link
               to="/teacher-studio"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/teacher-studio') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
@@ -73,7 +83,6 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
           {/* Right Action Profile & Role Switcher */}
           <div className="flex items-center gap-2">
-            {/* Quick Role Switcher Selector for evaluation */}
             <div className="bg-orange-700/60 p-1 rounded-full flex items-center text-xs font-bold border border-orange-400/50">
               <span className="text-orange-200 px-2 text-[11px] hidden lg:inline">Vai trò:</span>
               <select
