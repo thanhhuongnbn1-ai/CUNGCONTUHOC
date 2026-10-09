@@ -259,3 +259,41 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- ====================================================================
+-- 8. CLASSES & CLASS MEMBERS TABLE (KHỞI TẠO LỚP HỌC & MÃ JOIN CODE 6 KÝ TỰ + QR)
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.classes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  grade_level TEXT NOT NULL DEFAULT 'LỚP 1',
+  join_code VARCHAR(6) UNIQUE NOT NULL,
+  teacher_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.class_members (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_class_student UNIQUE (class_id, student_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_classes_join_code ON public.classes(join_code);
+CREATE INDEX IF NOT EXISTS idx_classes_teacher ON public.classes(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_members_class ON public.class_members(class_id);
+
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_members ENABLE ROW LEVEL SECURITY;
+
+-- POLICIES FOR CLASSES
+CREATE POLICY "Allow all users to view classes" ON public.classes FOR SELECT USING (true);
+CREATE POLICY "Allow teachers to create classes" ON public.classes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow teachers to update their own classes" ON public.classes FOR UPDATE USING (teacher_id = auth.uid());
+
+-- POLICIES FOR CLASS MEMBERS
+CREATE POLICY "Allow members to view class list" ON public.class_members FOR SELECT USING (true);
+CREATE POLICY "Allow students to join classes" ON public.class_members FOR INSERT WITH CHECK (true);
