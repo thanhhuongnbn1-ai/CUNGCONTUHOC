@@ -403,3 +403,46 @@ CREATE POLICY "Allow users to view game scores"
 CREATE POLICY "Allow students to insert game scores"
   ON public.game_scores FOR INSERT
   WITH CHECK (true);
+
+
+-- ====================================================================
+-- 11. EXAM SUBMISSIONS (BÀI NỘP ĐỀ THI 5 DẠNG CÂU HỎI & CHẤM ĐIỂM)
+-- Hỗ trợ:
+-- 1) Trắc nghiệm 1 Đáp án (Toán / Hóa LaTeX)
+-- 2) Trắc nghiệm Nhiều Đáp án (Tính điểm % Partial Scoring)
+-- 3) Đúng / Sai cho từng ý (True / False)
+-- 4) Điền chỗ trống (Fill in the blank)
+-- 5) Tự luận / Văn bản & Tải ảnh bài làm thủ công (Essay & Handwritten Photos)
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.exam_submissions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  student_name TEXT DEFAULT 'Học sinh',
+  answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+  scores_breakdown JSONB DEFAULT '{}'::jsonb,
+  total_score NUMERIC DEFAULT 0,
+  max_score NUMERIC DEFAULT 100,
+  essay_submission JSONB DEFAULT '{}'::jsonb, -- Lưu text & base64/storage imageUrl bài làm viết tay
+  essay_feedback TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_sub_material ON public.exam_submissions(material_id);
+CREATE INDEX IF NOT EXISTS idx_exam_sub_student ON public.exam_submissions(student_id);
+
+ALTER TABLE public.exam_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select on exam_submissions"
+  ON public.exam_submissions FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow students to submit exams"
+  ON public.exam_submissions FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow teachers and admins to grade exams"
+  ON public.exam_submissions FOR UPDATE
+  USING (true);
+
