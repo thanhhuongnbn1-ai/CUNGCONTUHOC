@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { getStoredClasses, generateQRCodeUrl } from '../lib/classService';
 import CreateClassModal from '../components/CreateClassModal';
 import JoinClassModal from '../components/JoinClassModal';
-import { PlusCircle, QrCode, Copy, Check, Users, Sparkles, LogIn, Share2, GraduationCap, ShieldCheck } from 'lucide-react';
+import TeacherAwardBonusModal from '../components/TeacherAwardBonusModal';
+import { PlusCircle, QrCode, Copy, Check, Users, Sparkles, LogIn, Share2, GraduationCap, ShieldCheck, Gift } from 'lucide-react';
 
 export const ClassManager = ({ userProfile }) => {
   const [classes, setClasses] = useState([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isBonusModalOpen, setIsBonusModalOpen] = useState(false);
   const [selectedQRClass, setSelectedQRClass] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
 
@@ -59,15 +61,25 @@ export const ClassManager = ({ userProfile }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {isTeacher ? (
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="bg-white text-[#FF6600] hover:bg-orange-50 font-black text-sm px-6 py-3.5 rounded-2xl shadow-lg flex items-center gap-2 kid-btn whitespace-nowrap"
-            >
-              <PlusCircle className="w-5 h-5 text-[#FF6600]" />
-              <span>Khởi tạo Lớp Mới</span>
-            </button>
+            <>
+              <button
+                onClick={() => setIsBonusModalOpen(true)}
+                className="bg-yellow-300 hover:bg-yellow-200 text-orange-950 font-black text-sm px-6 py-3.5 rounded-2xl shadow-lg flex items-center gap-2 kid-btn whitespace-nowrap border-2 border-yellow-100"
+              >
+                <Gift className="w-5 h-5 text-orange-600" />
+                <span>Khen Thưởng Học Sinh 🎁</span>
+              </button>
+
+              <button
+                onClick={() => setIsCreateOpen(true)}
+                className="bg-white text-[#FF6600] hover:bg-orange-50 font-black text-sm px-6 py-3.5 rounded-2xl shadow-lg flex items-center gap-2 kid-btn whitespace-nowrap"
+              >
+                <PlusCircle className="w-5 h-5 text-[#FF6600]" />
+                <span>Khởi tạo Lớp Mới</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setIsJoinOpen(true)}
@@ -161,6 +173,13 @@ export const ClassManager = ({ userProfile }) => {
           </div>
         </div>
       )}
+
+      {/* Teacher Bonus XP Modal */}
+      <TeacherAwardBonusModal
+        isOpen={isBonusModalOpen}
+        onClose={() => setIsBonusModalOpen(false)}
+        userProfile={userProfile}
+      />
 
     </div>
   );
