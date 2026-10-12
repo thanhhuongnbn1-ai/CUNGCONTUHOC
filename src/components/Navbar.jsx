@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, MessageCircle, BarChart3, User, LogOut, ShieldCheck, GraduationCap, PlusCircle, Users } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, BarChart3, User, LogOut, ShieldCheck, GraduationCap, PlusCircle, Users, Calendar } from 'lucide-react';
 
 export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
   const location = useLocation();
@@ -51,13 +51,23 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
             </Link>
 
             <Link
+              to="/schedule"
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                isActive('/schedule') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>THỜI KHÓA BIỂU</span>
+            </Link>
+
+            <Link
               to="/classes"
               className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/classes') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
               <Users className="w-4 h-4" />
-              <span>QUẢN LÝ LỚP HỌC</span>
+              <span>LỚP HỌC</span>
             </Link>
 
             <Link
@@ -67,7 +77,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
               }`}
             >
               <Sparkles className="w-4 h-4" />
-              <span>AI CONTENT STUDIO</span>
+              <span>AI STUDIO</span>
             </Link>
 
             <Link
@@ -77,7 +87,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              <span>TIẾN ĐỘ & VI PHẠM</span>
+              <span>TIẾN ĐỘ</span>
             </Link>
           </nav>
 
