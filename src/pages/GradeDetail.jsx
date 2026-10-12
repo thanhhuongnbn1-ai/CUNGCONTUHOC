@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { MaterialCard } from '../components/MaterialCard';
 import { MaterialViewer } from '../components/MaterialViewer';
-import { BookOpen, Sparkles, PlusCircle, Search, ArrowLeft, Layers } from 'lucide-react';
+import { BookOpen, Sparkles, PlusCircle, Search, ArrowLeft, Layers, CheckSquare } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { SAMPLE_EXAM_DATA, ExamCreatorModal } from '../components/ExamCreatorModal';
 
 const GRADE_CONFIGS = {
   'tien-lop-1': { title: 'TIỀN LỚP 1', desc: 'Kiến thức nền tảng nhận biết chữ cái, con số & hình khối cho bé', color: 'bg-[#FF5376]' },
@@ -25,6 +26,7 @@ export const GradeDetail = ({ userProfile }) => {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
 
   const gradeInfo = GRADE_CONFIGS[gradeSlug] || GRADE_CONFIGS['lop-1'];
 
@@ -37,6 +39,15 @@ export const GradeDetail = ({ userProfile }) => {
     if (!isSupabaseConfigured()) {
       // Fallback sample materials for grade
       setMaterials([
+        {
+          id: `demo-${gradeSlug}-exam`,
+          grade_id: gradeSlug,
+          subject: 'Toán học',
+          title: `Đề Khảo Sát Năng Lực 5 Dạng SGK (${gradeInfo.title})`,
+          description: 'Hỗ trợ công thức Toán LaTeX, trắc nghiệm nhiều đáp án tính % điểm, đúng/sai, điền khuyết và tự luận tải ảnh.',
+          content_type: 'quiz',
+          ai_generated_content: SAMPLE_EXAM_DATA
+        },
         {
           id: `demo-${gradeSlug}-1`,
           grade_id: gradeSlug,
@@ -91,7 +102,23 @@ export const GradeDetail = ({ userProfile }) => {
           .eq('grade_id', folderData.id);
 
         if (materialData) {
-          setMaterials(materialData);
+          const hasExam = materialData.some(m => m.ai_generated_content?.type === 'multi_type_exam' || m.content_type === 'exam');
+          if (!hasExam) {
+            setMaterials([
+              {
+                id: `sample-exam-${gradeSlug}`,
+                grade_id: folderData.id,
+                subject: 'Toán học',
+                title: `Đề Khảo Sát Năng Lực 5 Dạng Câu Hỏi SGK (${gradeInfo.title})`,
+                description: 'Trắc nghiệm Toán LaTeX, nhiều đáp án tính % điểm, đúng/sai, điền khuyết và tự luận tải ảnh bài làm.',
+                content_type: 'quiz',
+                ai_generated_content: SAMPLE_EXAM_DATA
+              },
+              ...materialData
+            ]);
+          } else {
+            setMaterials(materialData);
+          }
         }
       }
     } catch (err) {
@@ -130,16 +157,25 @@ export const GradeDetail = ({ userProfile }) => {
           <p className="text-white/90 text-base font-medium mt-1 max-w-xl">{gradeInfo.desc}</p>
         </div>
 
-        {/* Teacher Studio Quick Launch */}
-        {userProfile?.role === 'teacher' && (
-          <Link
-            to="/teacher-studio"
-            className="bg-white text-gray-900 hover:bg-orange-50 font-black px-6 py-3.5 rounded-2xl shadow-lg flex items-center gap-2 kid-btn whitespace-nowrap"
+        {/* Teacher Studio & Exam Creator Quick Launch */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setIsExamModalOpen(true)}
+            className="bg-white/20 hover:bg-white/30 text-white font-black px-5 py-3 rounded-2xl shadow border border-white/30 flex items-center gap-2 kid-btn whitespace-nowrap text-xs"
           >
-            <PlusCircle className="w-5 h-5 text-orange-600" />
-            <span>Tạo bài học AI mới</span>
-          </Link>
-        )}
+            <CheckSquare className="w-4 h-4 text-yellow-300" />
+            <span>Tạo Đề Thi 5 Dạng</span>
+          </button>
+          {userProfile?.role === 'teacher' && (
+            <Link
+              to="/teacher-studio"
+              className="bg-white text-gray-900 hover:bg-orange-50 font-black px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 kid-btn whitespace-nowrap text-xs"
+            >
+              <PlusCircle className="w-4 h-4 text-orange-600" />
+              <span>AI Studio</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Subject Filter Bar */}
@@ -195,6 +231,18 @@ export const GradeDetail = ({ userProfile }) => {
           <h3 className="text-xl font-black">Chưa có học liệu nào trong mục này!</h3>
           <p className="text-sm font-medium mt-1">Giáo viên có thể sử dụng AI Content Studio để đăng tải bài giảng mới.</p>
         </div>
+      )}
+
+      {/* EXAM CREATOR MODAL POPUP */}
+      {isExamModalOpen && (
+        <ExamCreatorModal
+          userProfile={userProfile}
+          onClose={() => setIsExamModalOpen(false)}
+          onCreated={() => {
+            setIsExamModalOpen(false);
+            fetchGradeMaterials();
+          }}
+        />
       )}
 
     </div>
