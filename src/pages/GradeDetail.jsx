@@ -5,6 +5,7 @@ import { MaterialViewer } from '../components/MaterialViewer';
 import { BookOpen, Sparkles, PlusCircle, Search, ArrowLeft, Layers, CheckSquare } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { SAMPLE_EXAM_DATA, ExamCreatorModal } from '../components/ExamCreatorModal';
+import { FlexibleAssignmentModal } from '../components/FlexibleAssignmentModal';
 
 const GRADE_CONFIGS = {
   'tien-lop-1': { title: 'TIỀN LỚP 1', desc: 'Kiến thức nền tảng nhận biết chữ cái, con số & hình khối cho bé', color: 'bg-[#FF5376]' },
@@ -27,6 +28,7 @@ export const GradeDetail = ({ userProfile }) => {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [assigningMaterial, setAssigningMaterial] = useState(null);
 
   const gradeInfo = GRADE_CONFIGS[gradeSlug] || GRADE_CONFIGS['lop-1'];
 
@@ -222,6 +224,7 @@ export const GradeDetail = ({ userProfile }) => {
               key={mat.id}
               material={mat}
               onSelect={(item) => setSelectedMaterial(item)}
+              onAssign={(item) => setAssigningMaterial(item)}
             />
           ))}
         </div>
@@ -240,6 +243,19 @@ export const GradeDetail = ({ userProfile }) => {
           onClose={() => setIsExamModalOpen(false)}
           onCreated={() => {
             setIsExamModalOpen(false);
+            fetchGradeMaterials();
+          }}
+        />
+      )}
+
+      {/* FLEXIBLE ASSIGNMENT MODAL POPUP */}
+      {assigningMaterial && (
+        <FlexibleAssignmentModal
+          material={assigningMaterial}
+          userProfile={userProfile}
+          onClose={() => setAssigningMaterial(null)}
+          onAssigned={() => {
+            setAssigningMaterial(null);
             fetchGradeMaterials();
           }}
         />
