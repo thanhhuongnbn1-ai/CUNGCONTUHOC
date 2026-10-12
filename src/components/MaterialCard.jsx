@@ -1,7 +1,7 @@
 import React from 'react';
-import { PlayCircle, Gamepad2, BookOpen, HelpCircle, ExternalLink, Sparkles, CheckCircle2, Clock, CheckSquare } from 'lucide-react';
+import { PlayCircle, Gamepad2, BookOpen, HelpCircle, ExternalLink, Sparkles, CheckCircle2, Clock, CheckSquare, Send } from 'lucide-react';
 
-export const MaterialCard = ({ material, progress, onSelect }) => {
+export const MaterialCard = ({ material, progress, onSelect, onAssign }) => {
   const isMultiTypeExam = material.content_type === 'exam' || material.ai_generated_content?.type === 'multi_type_exam';
 
   const getTypeBadge = (type) => {
@@ -69,15 +69,28 @@ export const MaterialCard = ({ material, progress, onSelect }) => {
           )}
         </div>
 
-        <button
-          onClick={() => onSelect(material)}
-          className={`${
-            isMultiTypeExam ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#FF6600] hover:bg-orange-600'
-          } text-white text-xs font-black px-4 py-2 rounded-xl shadow flex items-center gap-1.5 kid-btn`}
-        >
-          <span>{isMultiTypeExam ? 'Làm bài thi' : 'Học ngay'}</span>
-          <PlayCircle className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onAssign && (
+            <button
+              onClick={() => onAssign(material)}
+              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-black px-3 py-2 rounded-xl shadow-sm flex items-center gap-1 kid-btn transition"
+              title="Giao bài tập/đề thi cho toàn lớp, nhóm hoặc học sinh"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Giao bài</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => onSelect(material)}
+            className={`${
+              isMultiTypeExam ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#FF6600] hover:bg-orange-600'
+            } text-white text-xs font-black px-4 py-2 rounded-xl shadow flex items-center gap-1.5 kid-btn`}
+          >
+            <span>{isMultiTypeExam ? 'Làm bài thi' : 'Học ngay'}</span>
+            <PlayCircle className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
