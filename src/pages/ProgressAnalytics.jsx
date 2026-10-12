@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { BarChart3, ShieldAlert, Bot, CheckCircle2, Clock, Award, AlertTriangle, User, Search, RefreshCw } from 'lucide-react';
+import { BarChart3, ShieldAlert, Bot, CheckCircle2, Clock, Award, AlertTriangle, User, Search, RefreshCw, Gamepad2 } from 'lucide-react';
 
 export const ProgressAnalytics = ({ userProfile }) => {
   const [progressData, setProgressData] = useState([]);
   const [violationsData, setViolationsData] = useState([]);
   const [aiLogsData, setAiLogsData] = useState([]);
+  const [gameScoresData, setGameScoresData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -17,15 +18,19 @@ export const ProgressAnalytics = ({ userProfile }) => {
     if (!isSupabaseConfigured()) {
       // Demo analytics data for local testing
       setProgressData([
-        { id: '1', student: 'Nguyễn Văn Minh (Lớp 1A)', material: 'Phép cộng phạm vi 10', status: 'completed', score: 100, completed_at: 'Hôm nay 14:30' },
+        { id: '1', student: 'Bé Minh Triết (Lớp 1A)', material: 'Thử Thách Phép Cộng Phạm Vi 10', status: 'completed', score: 100, completed_at: 'Hôm nay 14:30' },
         { id: '2', student: 'Trần Thị Mai (Lớp 2B)', material: 'Truyện Cổ Tích Cây Bút Thần', status: 'in_progress', score: 85, completed_at: 'Hôm nay 10:15' }
       ]);
       setViolationsData([
-        { id: 'v1', student: 'Nguyễn Văn Minh', reason: 'Chuyển Tab Trình Duyệt', time: '14:25', count: 2 },
+        { id: 'v1', student: 'Bé Minh Triết', reason: 'Chuyển Tab Trình Duyệt', time: '14:25', count: 2 },
         { id: 'v2', student: 'Trần Thị Mai', reason: 'Thoát Cửa Sổ Trình Duyệt', time: '10:12', count: 1 }
       ]);
       setAiLogsData([
-        { id: 'log1', student: 'Nguyễn Văn Minh', topic: 'Gợi ý phép cộng 4 + 3', time: '14:20' }
+        { id: 'log1', student: 'Bé Minh Triết', topic: 'Gợi ý phép cộng 4 + 3', time: '14:20' }
+      ]);
+      setGameScoresData([
+        { id: 'gs1', student: 'Bé Minh Triết', game: 'Đấu Trường Phép Tính Nhanh', score: 100, max: 100, time: '14:28' },
+        { id: 'gs2', student: 'Trần Thị Mai', game: 'Ghép Từ Vựng Phép Thuật', score: 90, max: 100, time: '10:18' }
       ]);
       setLoading(false);
       return;
@@ -44,6 +49,10 @@ export const ProgressAnalytics = ({ userProfile }) => {
       const { data: logs } = await supabase.from('ai_tutor_logs').select('*, profiles(full_name, email), materials(title)').order('created_at', { ascending: false });
       if (logs) setAiLogsData(logs);
 
+      // Fetch game scores recorded by JavaScript Game SDK
+      const { data: scores } = await supabase.from('game_scores').select('*, profiles(full_name, email), materials(title)').order('played_at', { ascending: false });
+      if (scores) setGameScoresData(scores);
+
     } catch (err) {
       console.warn('Analytics fetch error:', err);
     } finally {
@@ -52,7 +61,7 @@ export const ProgressAnalytics = ({ userProfile }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 font-sans">
       
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -60,9 +69,9 @@ export const ProgressAnalytics = ({ userProfile }) => {
           <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2 inline-block">
             BÁO CÁO DÀNH CHO GIÁO VIÊN & PHỤ HUYNH
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black">Báo Cáo Tiến Độ & Thái Độ Tự Học</h1>
+          <h1 className="text-3xl sm:text-4xl font-black">Báo Cáo Tiến Độ, Điểm Game & Focus</h1>
           <p className="text-emerald-100 font-medium text-sm mt-1 max-w-xl">
-            Thống kê thời gian hoàn thành bài học, số lần nhờ AI Gia Sư Socratic gợi ý, và số lượt vi phạm chuyển tab (Focus Guardian).
+            Tự động đồng bộ điểm số từ Game HTML5 (JavaScript SDK), ghi nhận lượt rời tab (Focus Guardian) và thời gian học tập.
           </p>
         </div>
 
@@ -76,7 +85,7 @@ export const ProgressAnalytics = ({ userProfile }) => {
       </div>
 
       {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
         
         {/* Total Progress Card */}
         <div className="bg-white p-6 rounded-3xl border-2 border-emerald-100 shadow-md flex items-center gap-4">
@@ -84,8 +93,19 @@ export const ProgressAnalytics = ({ userProfile }) => {
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <div>
-            <span className="text-xs font-extrabold text-gray-400 uppercase">Bài Học Hoàn Thành</span>
+            <span className="text-xs font-extrabold text-gray-400 uppercase">Bài Hoàn Thành</span>
             <h3 className="text-3xl font-black text-gray-800">{progressData.length}</h3>
+          </div>
+        </div>
+
+        {/* Total Game Scores Card */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-purple-100 shadow-md flex items-center gap-4">
+          <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center font-black">
+            <Gamepad2 className="w-8 h-8" />
+          </div>
+          <div>
+            <span className="text-xs font-extrabold text-gray-400 uppercase">Lượt Game SDK</span>
+            <h3 className="text-3xl font-black text-purple-600">{gameScoresData.length}</h3>
           </div>
         </div>
 
@@ -95,7 +115,7 @@ export const ProgressAnalytics = ({ userProfile }) => {
             <ShieldAlert className="w-8 h-8" />
           </div>
           <div>
-            <span className="text-xs font-extrabold text-gray-400 uppercase">Lượt Rời Tab (Focus Lost)</span>
+            <span className="text-xs font-extrabold text-gray-400 uppercase">Rời Tab (Focus Lost)</span>
             <h3 className="text-3xl font-black text-red-600">{violationsData.length}</h3>
           </div>
         </div>
@@ -106,7 +126,7 @@ export const ProgressAnalytics = ({ userProfile }) => {
             <Bot className="w-8 h-8" />
           </div>
           <div>
-            <span className="text-xs font-extrabold text-gray-400 uppercase">Phiên Hỏi AI Gia Sư</span>
+            <span className="text-xs font-extrabold text-gray-400 uppercase">Hỏi AI Gia Sư</span>
             <h3 className="text-3xl font-black text-orange-600">{aiLogsData.length}</h3>
           </div>
         </div>
@@ -116,36 +136,30 @@ export const ProgressAnalytics = ({ userProfile }) => {
       {/* Detailed Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Table 1: Progress Table */}
+        {/* Table 1: Progress & Game Scores Table */}
         <div className="bg-white p-6 rounded-3xl border-2 border-gray-100 shadow-md space-y-4">
           <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
-            <Award className="w-5 h-5 text-emerald-600" />
-            Bảng Điểm & Tiến Độ Học Tập
+            <Gamepad2 className="w-5 h-5 text-purple-600" />
+            Nhật Ký Điểm Game HTML5 (Ghi Tự Động Qua SDK)
           </h3>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 text-gray-500 font-extrabold uppercase border-b">
+              <thead className="bg-purple-50 text-purple-700 font-extrabold uppercase border-b border-purple-100">
                 <tr>
                   <th className="p-3">Học sinh</th>
-                  <th className="p-3">Bài học</th>
-                  <th className="p-3">Trạng thái</th>
-                  <th className="p-3">Điểm số</th>
+                  <th className="p-3">Tựa Game</th>
+                  <th className="p-3">Điểm SDK</th>
+                  <th className="p-3">Thời gian</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-bold">
-                {progressData.map((item) => (
-                  <tr key={item.id} className="hover:bg-emerald-50/50">
+                {gameScoresData.map((item) => (
+                  <tr key={item.id} className="hover:bg-purple-50/40">
                     <td className="p-3">{item.profiles?.full_name || item.student || 'Học sinh'}</td>
-                    <td className="p-3 font-medium">{item.materials?.title || item.material}</td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${
-                        item.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {item.status === 'completed' ? 'Hoàn thành' : 'Đang học'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-emerald-600 font-black">{item.score || 100} điểm</td>
+                    <td className="p-3 font-medium">{item.materials?.title || item.game || 'Game Phép Tính'}</td>
+                    <td className="p-3 text-purple-700 font-black">{item.score} / {item.max_score || item.max || 100}</td>
+                    <td className="p-3 text-gray-400">{item.played_at ? new Date(item.played_at).toLocaleTimeString('vi-VN') : item.time}</td>
                   </tr>
                 ))}
               </tbody>
