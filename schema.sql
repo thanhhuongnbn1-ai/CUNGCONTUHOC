@@ -374,3 +374,32 @@ CREATE POLICY "Users can view their own notifications"
 CREATE POLICY "Allow inserting notifications"
   ON public.notifications FOR INSERT
   WITH CHECK (true);
+
+
+-- ====================================================================
+-- 10. GAME SCORES (GHI NHẬN ĐIỂM GAME TỰ ĐỘNG QUA JAVASCRIPT SDK)
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.game_scores (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  material_id UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+  score NUMERIC NOT NULL DEFAULT 0,
+  max_score NUMERIC DEFAULT 100,
+  time_spent_seconds INT DEFAULT 0,
+  game_metadata JSONB DEFAULT '{}'::jsonb,
+  played_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_scores_student ON public.game_scores(student_id);
+CREATE INDEX IF NOT EXISTS idx_game_scores_material ON public.game_scores(material_id);
+
+ALTER TABLE public.game_scores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow users to view game scores"
+  ON public.game_scores FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow students to insert game scores"
+  ON public.game_scores FOR INSERT
+  WITH CHECK (true);
