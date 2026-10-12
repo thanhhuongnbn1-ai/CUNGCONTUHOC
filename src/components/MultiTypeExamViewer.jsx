@@ -29,8 +29,49 @@ export const MultiTypeExamViewer = ({
   onBack
 }) => {
   const examData = material?.ai_generated_content || {};
-  const questions = examData.questions || [];
+  const rawQuestions = examData.questions || [];
   const timeLimitMinutes = examData.timeLimitMinutes || 20;
+
+  // Shuffle Questions & Options State
+  const [shuffledQuestions, setShuffledQuestions] = useState([]);
+  const [examCode] = useState(() => Math.floor(1000 + Math.random() * 9000));
+  const isShuffleEnabled = examData.shuffle_questions !== false && examData.shuffle_options !== false;
+
+  // Initialize and shuffle questions & options
+  useEffect(() => {
+    if (!rawQuestions || rawQuestions.length === 0) {
+      setShuffledQuestions([]);
+      return;
+    }
+
+    if (!isShuffleEnabled) {
+      setShuffledQuestions(rawQuestions);
+      return;
+    }
+
+    // 1. Shuffle question list
+    const qList = [...rawQuestions].sort(() => 0.5 - Math.random());
+
+    // 2. Shuffle options for each single_choice & multiple_choice
+    const processed = qList.map(q => {
+      if ((q.type === 'single_choice' || q.type === 'multiple_choice') && q.options) {
+        const mapped = q.options.map((opt, idx) => ({
+          text: opt,
+          originalIndex: idx
+        }));
+        const shuffledOpts = [...mapped].sort(() => 0.5 - Math.random());
+        return {
+          ...q,
+          displayOptions: shuffledOpts
+        };
+      }
+      return q;
+    });
+
+    setShuffledQuestions(processed);
+  }, [material]);
+
+  const questions = shuffledQuestions.length > 0 ? shuffledQuestions : rawQuestions;
 
   // Answers State:
   // single_choice: { [qId]: number (optionIdx) }
@@ -409,12 +450,20 @@ export const MultiTypeExamViewer = ({
             </button>
           )}
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="bg-white/25 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
                 {material?.subject || 'ĐỀ THI'}
               </span>
               <span className="bg-white/20 text-xs font-bold px-2.5 py-0.5 rounded-full">
                 5 Dạng Câu Hỏi
+              </span>
+              <span className="bg-white/25 text-xs font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                <span>🎲 Mã đề: #{examCode}</span>
+                {isShuffleEnabled && (
+                  <span className="bg-emerald-500/80 text-[10px] text-white px-1.5 py-0.2 rounded font-black">
+                    Đã trộn câu & đáp án
+                  </span>
+                )}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black mt-1">
@@ -599,9 +648,11 @@ export const MultiTypeExamViewer = ({
           {/* ---------------------------------------------------- */}
           {currentQ.type === 'single_choice' && (
             <div className="space-y-3 pt-2">
-              {currentQ.options?.map((opt, optIdx) => {
-                const isSelected = answers[currentQ.id] === optIdx;
-                const isCorrect = currentQ.correctIndex === optIdx;
+              {(currentQ.displayOptions || currentQ.options?.map((opt, idx) => ({ text: opt, originalIndex: idx })))?.map((optItem, optIdx) => {
+                const optText = typeof optItem === 'object' ? optItem.text : optItem;
+                const origIdx = typeof optItem === 'object' ? optItem.originalIndex : optIdx;
+                const isSelected = answers[currentQ.id] === origIdx;
+                const isCorrect = currentQ.correctIndex === origIdx;
                 let btnStyle = 'bg-gray-50 border-gray-200 text-gray-800 hover:border-orange-300';
 
                 if (isSubmitted) {
@@ -617,7 +668,7 @@ export const MultiTypeExamViewer = ({
                 return (
                   <button
                     key={optIdx}
-                    onClick={() => handleSingleChoice(currentQ.id, optIdx)}
+                    onClick={() => handleSingleChoice(currentQ.id, origIdx)}
                     disabled={isSubmitted}
                     className={`w-full p-4 rounded-2xl border-2 text-left text-sm font-semibold flex items-center gap-3 transition kid-btn ${btnStyle}`}
                   >
@@ -627,7 +678,7 @@ export const MultiTypeExamViewer = ({
                       {String.fromCharCode(65 + optIdx)}
                     </span>
                     <div className="flex-1">
-                      <LatexRenderer content={opt} />
+                      <LatexRenderer content={optText} />
                     </div>
                     {isSubmitted && isCorrect && (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -649,10 +700,12 @@ export const MultiTypeExamViewer = ({
               <p className="text-xs font-bold text-orange-600 bg-orange-50 px-3 py-1.5 rounded-xl inline-block">
                 💡 Lưu ý: Câu hỏi có thể có nhiều hơn 1 đáp án đúng. Chọn đúng từng đáp án sẽ được tính % điểm!
               </p>
-              {currentQ.options?.map((opt, optIdx) => {
+              {(currentQ.displayOptions || currentQ.options?.map((opt, idx) => ({ text: opt, originalIndex: idx })))?.map((optItem, optIdx) => {
+                const optText = typeof optItem === 'object' ? optItem.text : optItem;
+                const origIdx = typeof optItem === 'object' ? optItem.originalIndex : optIdx;
                 const selectedList = answers[currentQ.id] || [];
-                const isSelected = selectedList.includes(optIdx);
-                const isCorrect = (currentQ.correctIndices || []).includes(optIdx);
+                const isSelected = selectedList.includes(origIdx);
+                const isCorrect = (currentQ.correctIndices || []).includes(origIdx);
                 let btnStyle = 'bg-gray-50 border-gray-200 text-gray-800 hover:border-orange-300';
 
                 if (isSubmitted) {
@@ -670,7 +723,7 @@ export const MultiTypeExamViewer = ({
                 return (
                   <button
                     key={optIdx}
-                    onClick={() => handleMultipleChoice(currentQ.id, optIdx)}
+                    onClick={() => handleMultipleChoice(currentQ.id, origIdx)}
                     disabled={isSubmitted}
                     className={`w-full p-4 rounded-2xl border-2 text-left text-sm font-semibold flex items-center gap-3 transition kid-btn ${btnStyle}`}
                   >
@@ -683,7 +736,7 @@ export const MultiTypeExamViewer = ({
                       {String.fromCharCode(65 + optIdx)}.
                     </span>
                     <div className="flex-1">
-                      <LatexRenderer content={opt} />
+                      <LatexRenderer content={optText} />
                     </div>
                     {isSubmitted && isCorrect && (
                       <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
