@@ -136,9 +136,61 @@ export const DEFAULT_STUDENT_RANKS = [
   }
 ];
 
+// Danh sách mẫu khen thưởng của giáo viên (Quick Presets)
+export const TEACHER_AWARD_PRESETS = [
+  {
+    id: 'speech',
+    title: 'Phát biểu hay',
+    desc: 'Hăng hái giơ tay, trả lời bài rõ ràng, tự tin',
+    xp: 20,
+    icon: '🙋‍♂️',
+    badge: 'Phát biểu hay'
+  },
+  {
+    id: 'help_friend',
+    title: 'Giúp đỡ bạn bè',
+    desc: 'Hỗ trợ bạn cùng bàn, chia sẻ đồ dùng, đoàn kết',
+    xp: 30,
+    icon: '🤝',
+    badge: 'Giúp đỡ bạn'
+  },
+  {
+    id: 'handwriting',
+    title: 'Vở sạch chữ đẹp',
+    desc: 'Trình bày cẩn thận, nét chữ nắn nót, sạch sẽ',
+    xp: 25,
+    icon: '📝',
+    badge: 'Chữ đẹp & Ngăn nắp'
+  },
+  {
+    id: 'creative',
+    title: 'Tư duy sáng tạo',
+    desc: 'Cách giải độc đáo, câu hỏi bất ngờ thú vị',
+    xp: 40,
+    icon: '💡',
+    badge: 'Sáng tạo xuất sắc'
+  },
+  {
+    id: 'progress',
+    title: 'Tiến bộ vượt bậc',
+    desc: 'Cải thiện điểm số, nỗ lực tự giác học tập',
+    xp: 35,
+    icon: '🌟',
+    badge: 'Nỗ lực tiến bộ'
+  },
+  {
+    id: 'discipline',
+    title: 'Kỷ luật & Trực nhật tốt',
+    desc: 'Giữ vệ sinh lớp học, đúng giờ, gương mẫu',
+    xp: 15,
+    icon: '🧹',
+    badge: 'Gương mẫu kỷ luật'
+  }
+];
+
 export const xpLeaderboardService = {
   /**
-   * Cộng điểm XP cho học sinh khi hoàn thành bài tập, đề thi, game hoặc giữ tập trung
+   * Cộng điểm XP cho học sinh khi hoàn thành bài tập, đề thi, game, hoặc giáo viên tặng thưởng
    */
   async awardXP({
     studentId = 'demo-student-id',
@@ -146,8 +198,13 @@ export const xpLeaderboardService = {
     gradeLevel = 'Lớp 1',
     avatarUrl = 'https://api.dicebear.com/7.x/bottts/svg?seed=student',
     xpAmount = 50,
-    activityType = 'exam', // 'exam' | 'quiz' | 'game' | 'lesson' | 'assignment' | 'focus_bonus'
-    activityTitle = 'Hoàn thành bài tập'
+    activityType = 'exam', // 'exam' | 'quiz' | 'game' | 'lesson' | 'assignment' | 'focus_bonus' | 'teacher_bonus'
+    activityTitle = 'Hoàn thành bài tập',
+    teacherId = null,
+    teacherName = null,
+    reason = null,
+    isTeacherBonus = false,
+    note = ''
   }) {
     const xpLog = {
       id: `xp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -155,9 +212,12 @@ export const xpLeaderboardService = {
       student_name: studentName,
       grade_level: gradeLevel,
       avatar_url: avatarUrl,
-      xp_amount: xpAmount,
+      xp_amount: Number(xpAmount),
       activity_type: activityType,
       activity_title: activityTitle,
+      teacher_id: teacherId,
+      teacher_name: teacherName,
+      reason: reason || activityTitle,
       created_at: new Date().toISOString()
     };
 
@@ -174,14 +234,19 @@ export const xpLeaderboardService = {
     if (isSupabaseConfigured()) {
       try {
         const isRealUser = studentId && studentId !== 'demo-student' && !studentId.startsWith('demo-');
+        const isRealTeacher = teacherId && teacherId !== 'demo-teacher' && !teacherId.startsWith('demo-');
+        
         await supabase.from('student_xp_logs').insert({
           student_id: isRealUser ? studentId : null,
           student_name: studentName,
           grade_level: gradeLevel,
           avatar_url: avatarUrl,
-          xp_amount: xpAmount,
+          xp_amount: Number(xpAmount),
           activity_type: activityType,
-          activity_title: activityTitle
+          activity_title: activityTitle,
+          teacher_id: isRealTeacher ? teacherId : null,
+          teacher_name: teacherName,
+          reason: reason || activityTitle
         }).catch(() => {});
       } catch (err) {
         console.warn('Sync XP to Supabase error:', err);
@@ -192,10 +257,14 @@ export const xpLeaderboardService = {
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('edtech_xp_awarded', {
         detail: {
-          xpAmount,
+          xpAmount: Number(xpAmount),
           activityTitle,
           studentName,
-          activityType
+          activityType,
+          isTeacherBonus: isTeacherBonus || activityType === 'teacher_bonus',
+          teacherName,
+          reason: reason || activityTitle,
+          note
         }
       });
       window.dispatchEvent(event);
@@ -315,6 +384,125 @@ export const xpLeaderboardService = {
     }
 
     return null;
+  },
+
+  /**
+   * Giáo viên cộng điểm thưởng trực tiếp cho học sinh kèm lý do (ví dụ: "Phát biểu hay", "Giúp đỡ bạn")
+   */
+  async awardTeacherBonus({
+    studentId,
+    studentName,
+    gradeLevel = 'Lớp 1',
+    className = '',
+    avatarUrl,
+    xpAmount = 20,
+    reason = 'Phát biểu hay',
+    teacherId = null,
+    teacherName = 'Cô Giáo',
+    note = ''
+  }) {
+    const cleanAmount = Math.max(5, Math.min(500, parseInt(xpAmount, 10) || 20));
+    const titleText = `[Thầy/Cô ${teacherName || 'Giáo viên'} khen thưởng]: ${reason}`;
+
+    return await this.awardXP({
+      studentId: studentId || 'demo-student-id',
+      studentName: studentName || 'Học sinh',
+      gradeLevel: gradeLevel || 'Lớp 1',
+      avatarUrl: avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=student',
+      xpAmount: cleanAmount,
+      activityType: 'teacher_bonus',
+      activityTitle: titleText,
+      teacherId,
+      teacherName,
+      reason,
+      isTeacherBonus: true,
+      note
+    });
+  },
+
+  /**
+   * Lấy lịch sử giáo viên tặng thưởng điểm
+   */
+  async getTeacherBonusHistory({ studentId = null, limit = 50 } = {}) {
+    let logs = [];
+    try {
+      const all = JSON.parse(localStorage.getItem(LOCAL_STORAGE_XP_LOGS) || '[]');
+      logs = all.filter(l => l.activity_type === 'teacher_bonus');
+      if (studentId) {
+        logs = logs.filter(l => l.student_id === studentId);
+      }
+    } catch (e) {
+      console.warn('Error reading local bonus logs:', e);
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        let query = supabase
+          .from('student_xp_logs')
+          .select('*')
+          .eq('activity_type', 'teacher_bonus')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (studentId) {
+          query = query.eq('student_id', studentId);
+        }
+
+        const { data, error } = await query;
+        if (!error && data && data.length > 0) {
+          const map = new Map();
+          [...data, ...logs].forEach(item => {
+            if (item.id && !map.has(item.id)) {
+              map.set(item.id, item);
+            }
+          });
+          logs = Array.from(map.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+      } catch (err) {
+        console.warn('Error fetching Supabase bonus logs:', err);
+      }
+    }
+
+    return logs.slice(0, limit);
+  },
+
+  /**
+   * Lấy danh sách tất cả học sinh (để giáo viên chọn khen thưởng nhanh)
+   */
+  async getAllStudentsList() {
+    const baseList = DEFAULT_STUDENT_RANKS.map(s => ({
+      id: s.student_id,
+      name: s.student_name,
+      grade_level: s.grade_level,
+      class_name: s.class_name,
+      avatar_url: s.avatar_url,
+      title: s.title
+    }));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, role, avatar_url')
+          .eq('role', 'student');
+        
+        if (data && data.length > 0) {
+          const remoteList = data.map(p => ({
+            id: p.id,
+            name: p.full_name || 'Học sinh',
+            grade_level: 'Lớp 1',
+            class_name: 'Lớp 1A',
+            avatar_url: p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`,
+            title: 'Học Sinh Chăm Chỉ ⭐'
+          }));
+          const map = new Map();
+          [...baseList, ...remoteList].forEach(s => map.set(s.id, s));
+          return Array.from(map.values());
+        }
+      } catch (e) {}
+    }
+
+    return baseList;
   }
 };
 
