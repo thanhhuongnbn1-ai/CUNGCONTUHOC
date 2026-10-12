@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { generateMaterialWithAI } from '../lib/aiContentStudio';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Sparkles, FileText, ExternalLink, Gamepad2, HelpCircle, BookOpen, CheckCircle, RefreshCw, Upload, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, FileText, ExternalLink, Gamepad2, HelpCircle, BookOpen, CheckCircle, RefreshCw, Upload, Image as ImageIcon, PlusCircle, CheckSquare, ListOrdered, Edit3 } from 'lucide-react';
+import { ExamCreatorModal } from '../components/ExamCreatorModal';
 
 export const TeacherStudio = ({ userProfile }) => {
-  const [studioMode, setStudioMode] = useState('ai_generator'); // 'ai_generator' | 'iframe_embed'
+  const [studioMode, setStudioMode] = useState('ai_generator'); // 'ai_generator' | 'iframe_embed' | 'multi_type_exam'
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   
   // Form State
   const [gradeSlug, setGradeSlug] = useState('lop-1');
@@ -145,6 +147,18 @@ export const TeacherStudio = ({ userProfile }) => {
           >
             <ExternalLink className="w-4 h-4 inline mr-1" />
             Nhúng iFrame
+          </button>
+          <button
+            onClick={() => {
+              setStudioMode('multi_type_exam');
+              setIsExamModalOpen(true);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition ${
+              studioMode === 'multi_type_exam' ? 'bg-white text-[#FF6600] shadow' : 'text-white hover:bg-white/10'
+            }`}
+          >
+            <CheckSquare className="w-4 h-4 inline mr-1" />
+            Tạo Đề Thi 5 Dạng
           </button>
         </div>
       </div>
@@ -319,7 +333,7 @@ export const TeacherStudio = ({ userProfile }) => {
           </div>
 
         </div>
-      ) : (
+      ) : studioMode === 'iframe_embed' ? (
         /* iFrame Embed Studio Form */
         <div className="bg-white p-8 rounded-3xl border-2 border-orange-100 shadow-md max-w-3xl mx-auto space-y-6">
           <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
@@ -409,6 +423,99 @@ export const TeacherStudio = ({ userProfile }) => {
             )}
           </div>
         </div>
+      ) : (
+        /* Multi-Type Exam Dashboard & Creator Trigger */
+        <div className="bg-white p-8 rounded-3xl border-2 border-orange-100 shadow-md max-w-4xl mx-auto space-y-8 animate-fade-in">
+          <div className="text-center space-y-3">
+            <span className="bg-orange-100 text-orange-700 text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider inline-block">
+              BỘ CÔNG CỤ TẠO ĐỀ THI ĐA DẠNG 5 DẠNG CÂU HỎI
+            </span>
+            <h2 className="text-3xl font-black text-gray-800">
+              Soạn Đề Thi Trắc Nghiệm LaTeX & Tự Luận Chuyên Sâu
+            </h2>
+            <p className="text-gray-500 font-medium text-sm max-w-2xl mx-auto">
+              Hỗ trợ đầy đủ 5 dạng bài tập hiện đại: Công thức Toán/Hóa KaTeX, tính % điểm cho câu nhiều đáp án, Đúng/Sai, Điền khuyết và Tải ảnh bài làm viết tay.
+            </p>
+          </div>
+
+          {/* 5 Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-orange-50/60 p-5 rounded-2xl border border-orange-200 space-y-2">
+              <span className="text-2xl block">🔢</span>
+              <h4 className="font-black text-gray-800 text-sm">1. Trắc Nghiệm 1 Đáp Án (LaTeX)</h4>
+              <p className="text-xs text-gray-600">
+                Hỗ trợ công thức Toán, Lý, Hóa phức tạp như phân số, căn bậc hai, lũy thừa, phương trình phản ứng hóa học.
+              </p>
+            </div>
+
+            <div className="bg-blue-50/60 p-5 rounded-2xl border border-blue-200 space-y-2">
+              <span className="text-2xl block">☑️</span>
+              <h4 className="font-black text-gray-800 text-sm">2. Trắc Nghiệm Nhiều Đáp Án</h4>
+              <p className="text-xs text-gray-600">
+                Cho phép chọn nhiều đáp án đúng kèm thuật toán tính điểm theo tỷ lệ phần trăm (Partial Scoring) công bằng.
+              </p>
+            </div>
+
+            <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200 space-y-2">
+              <span className="text-2xl block">⚖️</span>
+              <h4 className="font-black text-gray-800 text-sm">3. Câu Hỏi Đúng / Sai</h4>
+              <p className="text-xs text-gray-600">
+                Đánh giá từng ý/mệnh đề độc lập. Tự động chia đều điểm số cho các ý học sinh trả lời đúng.
+              </p>
+            </div>
+
+            <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200 space-y-2">
+              <span className="text-2xl block">✍️</span>
+              <h4 className="font-black text-gray-800 text-sm">4. Điền Chỗ Trống</h4>
+              <p className="text-xs text-gray-600">
+                Học sinh nhập từ hoặc số chính xác vào đoạn văn còn thiếu, tự động chuẩn hóa dấu câu và chữ hoa/thường.
+              </p>
+            </div>
+
+            <div className="bg-purple-50/60 p-5 rounded-2xl border border-purple-200 space-y-2 md:col-span-2 lg:col-span-2">
+              <span className="text-2xl block">📝</span>
+              <h4 className="font-black text-gray-800 text-sm">5. Tự Luận & Tải Ảnh Bài Làm Thủ Công</h4>
+              <p className="text-xs text-gray-600">
+                Học sinh có thể gõ văn bản dài trực tiếp hoặc chụp ảnh bài làm viết tay từ vở để nộp. Hỗ trợ xem trước ảnh phóng to và lưu vào database.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Callouts */}
+          <div className="p-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-3xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div>
+              <h3 className="text-xl font-black">Bắt Đầu Soạn Đề Thi Ngay Bây Giờ</h3>
+              <p className="text-orange-100 text-xs font-medium mt-1">
+                Có sẵn tính năng Nạp Đề Mẫu Chuẩn SGK 1-Click để trải nghiệm ngay lập tức!
+              </p>
+            </div>
+            <button
+              onClick={() => setIsExamModalOpen(true)}
+              className="bg-white text-[#FF6600] hover:bg-orange-50 font-black text-sm px-6 py-3.5 rounded-2xl shadow-lg transition kid-btn whitespace-nowrap flex items-center gap-2"
+            >
+              <PlusCircle className="w-5 h-5 text-orange-600" />
+              <span>Mở Bộ Soạn Đề Thi 5 Dạng</span>
+            </button>
+          </div>
+
+          {saveSuccess && (
+            <p className="text-center text-xs font-black text-emerald-600 bg-emerald-50 p-3 rounded-2xl border border-emerald-200">
+              🎉 Đã lưu đề thi thành công vào Thư mục Lớp trên Supabase!
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* EXAM CREATOR MODAL POPUP */}
+      {isExamModalOpen && (
+        <ExamCreatorModal
+          userProfile={userProfile}
+          onClose={() => setIsExamModalOpen(false)}
+          onCreated={() => {
+            setIsExamModalOpen(false);
+            setSaveSuccess(true);
+          }}
+        />
       )}
 
     </div>
