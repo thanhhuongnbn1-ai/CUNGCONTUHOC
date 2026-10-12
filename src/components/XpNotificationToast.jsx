@@ -11,13 +11,17 @@ export const XpNotificationToast = () => {
         id: Date.now(),
         xpAmount: data.xpAmount || 50,
         activityTitle: data.activityTitle || 'Hoạt động học tập',
-        studentName: data.studentName || 'Học sinh'
+        studentName: data.studentName || 'Học sinh',
+        isTeacherBonus: Boolean(data.isTeacherBonus),
+        teacherName: data.teacherName,
+        reason: data.reason,
+        note: data.note
       });
 
       // Tự động ẩn sau 4 giây
       const timer = setTimeout(() => {
         setNotification(null);
-      }, 4000);
+      }, 4500);
 
       return () => clearTimeout(timer);
     };
@@ -30,14 +34,20 @@ export const XpNotificationToast = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-bounce">
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white p-4 rounded-3xl shadow-2xl border-2 border-white flex items-center gap-3 max-w-sm">
-        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">
-          🌟
+      <div
+        className={`text-white p-4 rounded-3xl shadow-2xl border-2 border-white flex items-center gap-3 max-w-sm ${
+          notification.isTeacherBonus
+            ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 ring-4 ring-yellow-300/60'
+            : 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500'
+        }`}
+      >
+        <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl shadow-inner">
+          {notification.isTeacherBonus ? '🎁' : '🌟'}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="bg-white/30 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-              BẢNG XẾP HẠNG XP
+              {notification.isTeacherBonus ? '🎓 LỜI KHEN THẦY CÔ' : 'BẢNG XẾP HẠNG XP'}
             </span>
             <span className="text-yellow-200 text-xs font-black">
               +{notification.xpAmount} XP
@@ -46,8 +56,10 @@ export const XpNotificationToast = () => {
           <p className="text-xs font-black text-white truncate mt-0.5">
             {notification.studentName} đã nhận được {notification.xpAmount} XP!
           </p>
-          <p className="text-[10px] text-orange-100 truncate">
-            {notification.activityTitle}
+          <p className="text-[10px] text-white/90 truncate font-semibold">
+            {notification.isTeacherBonus && notification.teacherName
+              ? `${notification.teacherName} khen: "${notification.reason || notification.activityTitle}"`
+              : notification.activityTitle}
           </p>
         </div>
         <button
