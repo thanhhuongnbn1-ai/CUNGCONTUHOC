@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { generateMaterialWithAI } from '../lib/aiContentStudio';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Sparkles, FileText, ExternalLink, Gamepad2, HelpCircle, BookOpen, CheckCircle, RefreshCw, Upload, Image as ImageIcon, PlusCircle, CheckSquare, ListOrdered, Edit3 } from 'lucide-react';
+import { Sparkles, FileText, ExternalLink, Gamepad2, HelpCircle, BookOpen, CheckCircle, RefreshCw, Upload, Image as ImageIcon, PlusCircle, CheckSquare, ListOrdered, Edit3, Gift } from 'lucide-react';
 import { ExamCreatorModal } from '../components/ExamCreatorModal';
+import TeacherAwardBonusModal from '../components/TeacherAwardBonusModal';
 
 export const TeacherStudio = ({ userProfile }) => {
   const [studioMode, setStudioMode] = useState('ai_generator'); // 'ai_generator' | 'iframe_embed' | 'multi_type_exam'
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [isBonusModalOpen, setIsBonusModalOpen] = useState(false);
   
   // Form State
   const [gradeSlug, setGradeSlug] = useState('lop-1');
@@ -159,6 +161,13 @@ export const TeacherStudio = ({ userProfile }) => {
           >
             <CheckSquare className="w-4 h-4 inline mr-1" />
             Tạo Đề Thi 5 Dạng
+          </button>
+          <button
+            onClick={() => setIsBonusModalOpen(true)}
+            className="px-4 py-2 rounded-xl text-xs font-black transition bg-yellow-300 text-orange-950 shadow-md hover:bg-yellow-200 flex items-center gap-1 border border-yellow-100"
+          >
+            <Gift className="w-4 h-4 text-orange-600" />
+            Khen Thưởng XP 🎁
           </button>
         </div>
       </div>
@@ -517,6 +526,13 @@ export const TeacherStudio = ({ userProfile }) => {
           }}
         />
       )}
+
+      {/* TEACHER AWARD BONUS XP MODAL */}
+      <TeacherAwardBonusModal
+        isOpen={isBonusModalOpen}
+        onClose={() => setIsBonusModalOpen(false)}
+        userProfile={userProfile}
+      />
 
     </div>
   );
