@@ -8,6 +8,7 @@ import { EdTechGameSDK } from '../lib/gameSDK';
 import { ArrowLeft, Bot, CheckCircle2, ShieldAlert, Award, Sparkles, RefreshCw, Volume2, Gamepad2, ShieldCheck, Lock, Play, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { MultiTypeExamViewer } from './MultiTypeExamViewer';
 
 export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Triết', onBack }) => {
   const [activeTab, setActiveTab] = useState('lesson');
@@ -137,12 +138,22 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
         onClose={() => setIsAiTutorOpen(false)}
       />
 
-      {/* Top Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-3xl border-2 border-orange-100 shadow-sm">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 bg-gray-100 hover:bg-orange-100 text-gray-800 font-extrabold text-sm px-4 py-2.5 rounded-2xl transition kid-btn"
-        >
+      {/* Render Multi-Type Exam nếu học liệu là Đề thi 5 dạng */}
+      {(material?.content_type === 'exam' || material?.ai_generated_content?.type === 'multi_type_exam') ? (
+        <MultiTypeExamViewer
+          material={material}
+          studentId={studentId}
+          studentName={studentName}
+          onBack={onBack}
+        />
+      ) : (
+        <>
+          {/* Top Header Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-3xl border-2 border-orange-100 shadow-sm">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 bg-gray-100 hover:bg-orange-100 text-gray-800 font-extrabold text-sm px-4 py-2.5 rounded-2xl transition kid-btn"
+            >
           <ArrowLeft className="w-4 h-4 text-orange-600" />
           <span>Quay lại Thư mục Lớp</span>
         </button>
@@ -410,8 +421,10 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
         )}
 
       </div>
-    </div>
-  );
+    </>
+  )}
+</div>
+);
 };
 
 export default MaterialViewer;
