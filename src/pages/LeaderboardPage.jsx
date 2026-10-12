@@ -18,6 +18,7 @@ import {
   Gift
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import TeacherAwardBonusModal from '../components/TeacherAwardBonusModal';
 
 export const LeaderboardPage = ({ userProfile }) => {
   const [timeframe, setTimeframe] = useState('week'); // 'week' | 'month' | 'semester'
@@ -25,6 +26,10 @@ export const LeaderboardPage = ({ userProfile }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [myStats, setMyStats] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Modal Thầy Cô Tặng Thưởng XP Trực Tiếp
+  const [isBonusModalOpen, setIsBonusModalOpen] = useState(false);
+  const [selectedStudentForBonus, setSelectedStudentForBonus] = useState(null);
 
   useEffect(() => {
     loadLeaderboard();
@@ -41,6 +46,15 @@ export const LeaderboardPage = ({ userProfile }) => {
     setMyStats(myRankData);
 
     setLoading(false);
+  };
+
+  const handleOpenBonusModal = (student = null) => {
+    setSelectedStudentForBonus(student);
+    setIsBonusModalOpen(true);
+  };
+
+  const handleBonusAwarded = () => {
+    loadLeaderboard();
   };
 
   const top1 = leaderboard[0];
@@ -73,12 +87,20 @@ export const LeaderboardPage = ({ userProfile }) => {
           </h1>
 
           <p className="text-orange-100 font-medium text-sm leading-relaxed">
-            Hệ thống tự động xếp hạng dựa trên điểm kinh nghiệm (XP) tích lũy từ các hoạt động học tập, làm đề trắc nghiệm, thử thách game và chuỗi tập trung!
+            Hệ thống tự động xếp hạng dựa trên điểm kinh nghiệm (XP) tích lũy từ các hoạt động học tập, làm đề trắc nghiệm, thử thách game và điểm khen thưởng từ Thầy Cô!
           </p>
         </div>
 
-        {/* Live Refresh Button */}
-        <div className="relative z-10 flex items-center gap-3">
+        {/* Live Refresh Button & Teacher Bonus Button */}
+        <div className="relative z-10 flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => handleOpenBonusModal(null)}
+            className="bg-yellow-300 hover:bg-yellow-200 text-orange-950 font-black px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 kid-btn text-xs border-2 border-yellow-100"
+          >
+            <Gift className="w-4 h-4 text-orange-600" />
+            <span>Thầy/Cô Thưởng Điểm XP 🎁</span>
+          </button>
+
           <button
             onClick={loadLeaderboard}
             className="bg-white text-orange-600 hover:bg-orange-50 font-black px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 kid-btn text-xs"
@@ -334,6 +356,7 @@ export const LeaderboardPage = ({ userProfile }) => {
                 <th className="p-3.5 text-center">Chuỗi Streak</th>
                 <th className="p-3.5 text-center">Bài Hoàn Thành</th>
                 <th className="p-3.5 text-right">Tổng XP</th>
+                <th className="p-3.5 text-center">Khen Thưởng</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-bold">
@@ -401,6 +424,16 @@ export const LeaderboardPage = ({ userProfile }) => {
                         <span>{item.current_xp} XP</span>
                       </span>
                     </td>
+                    <td className="p-3.5 text-center">
+                      <button
+                        onClick={() => handleOpenBonusModal(item)}
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 font-black text-[11px] px-3 py-1.5 rounded-xl transition inline-flex items-center gap-1.5 shadow-sm active:scale-95 border border-amber-300"
+                        title="Thầy cô khen thưởng & tặng điểm XP cho học sinh này"
+                      >
+                        <Gift className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Thưởng XP</span>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -430,6 +463,15 @@ export const LeaderboardPage = ({ userProfile }) => {
           <span>Học Bài Ngay Để Tích Lũy Thêm XP</span>
         </Link>
       </div>
+
+      {/* 7. TEACHER AWARD BONUS MODAL */}
+      <TeacherAwardBonusModal
+        isOpen={isBonusModalOpen}
+        onClose={() => setIsBonusModalOpen(false)}
+        initialStudent={selectedStudentForBonus}
+        userProfile={userProfile}
+        onBonusAwarded={handleBonusAwarded}
+      />
 
     </div>
   );
