@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import confetti from 'canvas-confetti';
+import { xpLeaderboardService } from './xpLeaderboardService';
 
 /**
  * EDTECH HTML5 GAME SDK
@@ -145,7 +146,20 @@ class EdTechGameSDKManager {
       localStorage.setItem(historyKey, JSON.stringify(existing.slice(0, 30)));
     } catch (e) {}
 
-    // 3. Thông báo cho UI listeners
+    // 3. Tự động cộng điểm XP cho học sinh & đồng bộ Bảng Xếp Hạng
+    try {
+      const xpEarned = Math.max(15, Math.round(percentage * 0.7));
+      xpLeaderboardService.awardXP({
+        studentId: this.studentId || 'demo-student-id',
+        studentName: 'Học sinh',
+        gradeLevel: 'Lớp 1',
+        xpAmount: xpEarned,
+        activityType: 'game',
+        activityTitle: metadata?.gameName || metadata?.title || 'Đấu Trường Game'
+      });
+    } catch (_) {}
+
+    // 4. Thông báo cho UI listeners
     this.listeners.forEach((callback) => callback(result));
     return result;
   }
