@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { xpLeaderboardService } from './xpLeaderboardService';
 
 const LOCAL_STORAGE_SUBMISSIONS_KEY = 'edtech_auto_graded_submissions';
 const LOCAL_STORAGE_PROGRESS_KEY = 'edtech_student_progress_local';
@@ -389,9 +390,25 @@ export const autoGradingService = {
       }
     }
 
+    // 4. Tự động thưởng điểm XP cho học sinh & đồng bộ Bảng Xếp Hạng
+    const awardedXp = Math.max(25, Math.round((result.score100 * 1.2) + 20));
+    try {
+      await xpLeaderboardService.awardXP({
+        studentId,
+        studentName,
+        gradeLevel: 'Lớp 1',
+        xpAmount: awardedXp,
+        activityType: 'exam',
+        activityTitle: material?.title || 'Bài thi trắc nghiệm'
+      });
+    } catch (xpErr) {
+      console.warn('Award XP error:', xpErr);
+    }
+
     return {
       ...result,
       submissionId: submissionRecord.id,
+      awardedXp,
       supabaseSynced
     };
   },
