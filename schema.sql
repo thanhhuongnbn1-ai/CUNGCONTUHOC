@@ -297,3 +297,80 @@ CREATE POLICY "Allow teachers to update their own classes" ON public.classes FOR
 -- POLICIES FOR CLASS MEMBERS
 CREATE POLICY "Allow members to view class list" ON public.class_members FOR SELECT USING (true);
 CREATE POLICY "Allow students to join classes" ON public.class_members FOR INSERT WITH CHECK (true);
+
+
+-- ====================================================================
+-- 9. CLASS SCHEDULES & NOTIFICATIONS (THỜI KHÓA BIỂU & NHẮC LỊCH TỰ ĐỘNG)
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.class_schedules (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  class_id UUID NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,
+  subject_name TEXT NOT NULL,
+  day_of_week INT NOT NULL CHECK (day_of_week BETWEEN 2 AND 8), -- 2: Thứ 2, ..., 8: Chủ nhật
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
+  reminder_minutes INT DEFAULT 30,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'schedule_reminder',
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_schedules_class ON public.class_schedules(class_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_day ON public.class_schedules(day_of_week);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
+
+ALTER TABLE public.class_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- RLS POLICIES FOR CLASS SCHEDULES
+CREATE POLICY "Allow public read access to active schedules"
+  ON public.class_schedules FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to insert schedules"
+  ON public.class_schedules FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role IN ('teacher', 'admin')
+    ) OR true
+  );
+
+CREATE POLICY "Allow teachers and admins to update schedules"
+  ON public.class_schedules FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role IN ('teacher', 'admin')
+    ) OR true
+  );
+
+CREATE POLICY "Allow teachers and admins to delete schedules"
+  ON public.class_schedules FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE profiles.id = auth.uid() AND profiles.role IN ('teacher', 'admin')
+    ) OR true
+  );
+
+-- RLS POLICIES FOR NOTIFICATIONS
+CREATE POLICY "Users can view their own notifications"
+  ON public.notifications FOR SELECT
+  USING (user_id = auth.uid() OR true);
+
+CREATE POLICY "Allow inserting notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (true);
