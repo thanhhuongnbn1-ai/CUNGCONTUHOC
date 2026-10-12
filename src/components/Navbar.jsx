@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2 } from 'lucide-react';
+import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2, Trophy } from 'lucide-react';
 
 export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
   const location = useLocation();
@@ -51,13 +51,23 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
             </Link>
 
             <Link
+              to="/leaderboard"
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                isActive('/leaderboard') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
+              }`}
+            >
+              <Trophy className="w-4 h-4 text-yellow-300" />
+              <span>BẢNG XẾP HẠNG</span>
+            </Link>
+
+            <Link
               to="/games"
               className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/games') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
               <Gamepad2 className="w-4 h-4" />
-              <span>GAME & BXH</span>
+              <span>GAME MINI</span>
             </Link>
 
             <Link
