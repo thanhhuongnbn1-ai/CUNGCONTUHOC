@@ -446,3 +446,86 @@ CREATE POLICY "Allow teachers and admins to grade exams"
   ON public.exam_submissions FOR UPDATE
   USING (true);
 
+
+-- ====================================================================
+-- 12. QUESTION BANK (NGÂN HÀNG CÂU HỎI THEO ĐỘ KHÓ DỄ / TRUNG BÌNH / KHÓ)
+-- Hỗ trợ sinh đề tự động theo phân loại Dễ, Trung bình, Khó
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.question_bank (
+  id TEXT PRIMARY KEY DEFAULT ('qb_' || gen_random_uuid()),
+  grade_slug TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  difficulty TEXT NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard')),
+  type TEXT NOT NULL,
+  question TEXT NOT NULL,
+  options JSONB,
+  correct_index INT,
+  correct_indices JSONB,
+  items JSONB,
+  template TEXT,
+  blanks JSONB,
+  max_score NUMERIC DEFAULT 10,
+  guidelines TEXT,
+  sample_answer TEXT,
+  explanation TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_question_bank_grade ON public.question_bank(grade_slug);
+CREATE INDEX IF NOT EXISTS idx_question_bank_subject ON public.question_bank(subject);
+CREATE INDEX IF NOT EXISTS idx_question_bank_diff ON public.question_bank(difficulty);
+
+ALTER TABLE public.question_bank ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select on question_bank"
+  ON public.question_bank FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to insert into question_bank"
+  ON public.question_bank FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow teachers and admins to update question_bank"
+  ON public.question_bank FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to delete question_bank"
+  ON public.question_bank FOR DELETE
+  USING (true);
+
+
+-- ====================================================================
+-- 13. ASSIGNMENTS (GIAO BÀI TẬP / GAME / ĐỀ THI LINH HOẠT)
+-- Cho Toàn lớp ('all'), Nhóm cụ thể ('group'), hoặc Học sinh cá biệt ('individual')
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.assignments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
+  class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
+  assigned_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  target_type TEXT NOT NULL DEFAULT 'all' CHECK (target_type IN ('all', 'group', 'individual')),
+  target_group_name TEXT,
+  student_ids JSONB DEFAULT '[]'::jsonb,
+  deadline TIMESTAMPTZ,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_assignments_material ON public.assignments(material_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_class ON public.assignments(class_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_by ON public.assignments(assigned_by);
+
+ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow users to view assignments"
+  ON public.assignments FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to manage assignments"
+  ON public.assignments FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+
