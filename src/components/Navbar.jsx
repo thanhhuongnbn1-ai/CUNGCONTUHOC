@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, MessageCircle, BarChart3, User, LogOut, ShieldCheck, GraduationCap, PlusCircle, Users, Calendar } from 'lucide-react';
+import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2 } from 'lucide-react';
 
 export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
   const location = useLocation();
@@ -32,7 +32,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
           <nav className="flex items-center gap-1 sm:gap-2 text-sm font-extrabold flex-wrap justify-center">
             <Link
               to="/"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
@@ -42,7 +42,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
             <Link
               to="/grade/lop-1"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 location.pathname.startsWith('/grade') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
@@ -51,8 +51,18 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
             </Link>
 
             <Link
+              to="/games"
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+                isActive('/games') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
+              }`}
+            >
+              <Gamepad2 className="w-4 h-4" />
+              <span>GAME & BXH</span>
+            </Link>
+
+            <Link
               to="/schedule"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/schedule') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
@@ -62,7 +72,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
             <Link
               to="/classes"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/classes') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
@@ -72,7 +82,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
             <Link
               to="/teacher-studio"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/teacher-studio') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
@@ -82,7 +92,7 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
             <Link
               to="/analytics"
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full transition flex items-center gap-1.5 ${
                 isActive('/analytics') ? 'bg-white text-[#FF6600] shadow' : 'hover:bg-orange-600 text-white'
               }`}
             >
