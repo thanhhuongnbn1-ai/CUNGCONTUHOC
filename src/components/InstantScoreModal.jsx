@@ -120,6 +120,12 @@ export const InstantScoreModal = ({
             <div className="mt-1 bg-orange-100 text-orange-800 font-extrabold text-xs px-3 py-0.5 rounded-full">
               Thang điểm 100: <strong>{score100} / 100</strong>
             </div>
+
+            {/* Glowing XP Award Badge */}
+            <div className="mt-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-black text-xs px-3.5 py-1 rounded-full shadow flex items-center gap-1.5 animate-pulse">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-100" />
+              <span>+{result?.awardedXp || Math.round(score100 * 1.2)} XP Bảng Xếp Hạng</span>
+            </div>
           </div>
         </div>
 
