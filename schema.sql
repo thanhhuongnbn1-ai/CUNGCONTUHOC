@@ -529,3 +529,36 @@ CREATE POLICY "Allow teachers and admins to manage assignments"
   WITH CHECK (true);
 
 
+-- ====================================================================
+-- 14. STUDENT XP LOGS & ACADEMIC LEADERBOARD (BẢNG XẾP HẠNG HỌC SINH XUẤT SẮC)
+-- Phục vụ xếp hạng theo Tuần / Tháng / Học kỳ dựa trên điểm kinh nghiệm XP
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.student_xp_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_name TEXT DEFAULT 'Học sinh',
+  grade_level TEXT DEFAULT 'Lớp 1',
+  avatar_url TEXT,
+  xp_amount INT NOT NULL DEFAULT 10,
+  activity_type TEXT NOT NULL, -- 'exam', 'quiz', 'game', 'lesson', 'assignment', 'focus_bonus'
+  activity_title TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_xp_created ON public.student_xp_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_student_xp_student ON public.student_xp_logs(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_xp_grade ON public.student_xp_logs(grade_level);
+
+ALTER TABLE public.student_xp_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select on student_xp_logs"
+  ON public.student_xp_logs FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow students and system to insert student_xp_logs"
+  ON public.student_xp_logs FOR INSERT
+  WITH CHECK (true);
+
+
+
