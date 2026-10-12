@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { autoGradingService } from '../lib/autoGradingService';
+import { InstantScoreModal } from './InstantScoreModal';
 
 export const MultiTypeExamViewer = ({
   material,
@@ -87,6 +89,8 @@ export const MultiTypeExamViewer = ({
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(timeLimitMinutes * 60);
   const [timerActive, setTimerActive] = useState(true);
   const [scoreResult, setScoreResult] = useState(null);
+  const [showInstantModal, setShowInstantModal] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState('all'); // 'all' | 'wrong' | 'correct'
   const [previewImageModal, setPreviewImageModal] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
@@ -233,155 +237,34 @@ export const MultiTypeExamViewer = ({
     return false;
   };
 
-  // --- Scoring Logic ---
-  const calculateScore = () => {
-    let autoGradableCount = 0;
-    let earnedAutoPoints = 0;
-    const breakdown = {};
-
-    questions.forEach((q) => {
-      const userAns = answers[q.id];
-
-      if (q.type === 'single_choice') {
-        autoGradableCount++;
-        const isCorrect = userAns === q.correctIndex;
-        const pts = isCorrect ? 1 : 0;
-        earnedAutoPoints += pts;
-        breakdown[q.id] = {
-          type: q.type,
-          isCorrect,
-          scorePercent: isCorrect ? 100 : 0,
-          earned: pts,
-          max: 1
-        };
-      } else if (q.type === 'multiple_choice') {
-        autoGradableCount++;
-        const correctSet = new Set(q.correctIndices || []);
-        const chosenList = userAns || [];
-        const totalCorrect = correctSet.size || 1;
-
-        let rightChoices = 0;
-        let wrongChoices = 0;
-        chosenList.forEach(idx => {
-          if (correctSet.has(idx)) {
-            rightChoices++;
-          } else {
-            wrongChoices++;
-          }
-        });
-
-        // Partial scoring formula:
-        // (rightChoices - 0.5 * wrongChoices) / totalCorrect
-        const rawRatio = (rightChoices - 0.5 * wrongChoices) / totalCorrect;
-        const cappedRatio = Math.max(0, Math.min(1, rawRatio));
-        const pts = parseFloat(cappedRatio.toFixed(2));
-        earnedAutoPoints += pts;
-
-        breakdown[q.id] = {
-          type: q.type,
-          isCorrect: cappedRatio === 1,
-          isPartial: cappedRatio > 0 && cappedRatio < 1,
-          scorePercent: Math.round(cappedRatio * 100),
-          earned: pts,
-          max: 1,
-          rightChoices,
-          wrongChoices,
-          totalCorrect
-        };
-      } else if (q.type === 'true_false') {
-        autoGradableCount++;
-        const items = q.items || [];
-        const totalItems = items.length || 1;
-        let correctItemCount = 0;
-
-        items.forEach(item => {
-          const userVal = userAns ? userAns[item.id] : undefined;
-          if (userVal === item.correct) {
-            correctItemCount++;
-          }
-        });
-
-        const ratio = correctItemCount / totalItems;
-        const pts = parseFloat(ratio.toFixed(2));
-        earnedAutoPoints += pts;
-
-        breakdown[q.id] = {
-          type: q.type,
-          isCorrect: correctItemCount === totalItems,
-          scorePercent: Math.round(ratio * 100),
-          earned: pts,
-          max: 1,
-          correctItemCount,
-          totalItems
-        };
-      } else if (q.type === 'fill_in_the_blank') {
-        autoGradableCount++;
-        const blanks = q.blanks || [];
-        const totalBlanks = blanks.length || 1;
-        let correctBlankCount = 0;
-
-        blanks.forEach(b => {
-          const userVal = (userAns ? userAns[b.id] : '') || '';
-          const cleanedUserVal = userVal.trim().toLowerCase();
-          const isMatch = (b.acceptableAnswers || []).some(
-            acc => acc.trim().toLowerCase() === cleanedUserVal
-          );
-          if (isMatch) correctBlankCount++;
-        });
-
-        const ratio = correctBlankCount / totalBlanks;
-        const pts = parseFloat(ratio.toFixed(2));
-        earnedAutoPoints += pts;
-
-        breakdown[q.id] = {
-          type: q.type,
-          isCorrect: correctBlankCount === totalBlanks,
-          scorePercent: Math.round(ratio * 100),
-          earned: pts,
-          max: 1,
-          correctBlankCount,
-          totalBlanks
-        };
-      } else if (q.type === 'essay') {
-        // Essay is submitted for manual teacher grading
-        breakdown[q.id] = {
-          type: q.type,
-          isEssayPending: true,
-          submittedText: userAns?.text || '',
-          submittedImage: userAns?.imageUrl || null,
-          max: q.maxScore || 10
-        };
-      }
-    });
-
-    const objectiveScore100 = autoGradableCount > 0
-      ? Math.round((earnedAutoPoints / autoGradableCount) * 100)
-      : 100;
-
-    return {
-      autoGradableCount,
-      earnedAutoPoints,
-      objectiveScore100,
-      breakdown,
-      hasEssay: questions.some(q => q.type === 'essay')
-    };
-  };
-
   const handleAutoSubmit = () => {
     if (!isSubmitted) {
       handleSubmitExam();
     }
   };
 
+  // --- HỆ THỐNG CHẤM ĐIỂM TRẮC NGHIỆM TỰ ĐỘNG TỨC THÌ & ĐỒNG BỘ CSDL ---
   const handleSubmitExam = async () => {
     setTimerActive(false);
     setIsSubmitted(true);
     setIsSaving(true);
 
-    const calculated = calculateScore();
-    setScoreResult(calculated);
+    const timeSpentSeconds = Math.max(1, (timeLimitMinutes * 60) - timeLeftSeconds);
 
-    // Confetti effect
+    // Chấm điểm tức thì (0ms) và đồng bộ trực tiếp vào database Supabase & LocalStorage
+    const gradeResult = await autoGradingService.submitAndSync({
+      questions,
+      answers,
+      timeSpentSeconds,
+      material,
+      studentId,
+      studentName
+    });
+
+    setScoreResult(gradeResult);
+    setShowInstantModal(true);
+
+    // Hiệu ứng pháo hoa chúc mừng
     try {
       confetti({
         particleCount: 120,
@@ -390,47 +273,25 @@ export const MultiTypeExamViewer = ({
       });
     } catch (_) {}
 
-    // Synchronize to Database
-    if (material?.id && isSupabaseConfigured()) {
-      try {
-        // 1. Sync to student_progress
-        await supabase
-          .from('student_progress')
-          .upsert({
-            material_id: material.id,
-            student_id: studentId && studentId !== 'demo-student' ? studentId : null,
-            status: 'completed',
-            score: calculated.objectiveScore100,
-            completed_at: new Date().toISOString()
-          }, { onConflict: 'student_id,material_id' })
-          .catch(() => {});
-
-        // 2. Try inserting into exam_submissions if table exists
-        await supabase
-          .from('exam_submissions')
-          .insert({
-            material_id: material.id,
-            student_id: studentId && studentId !== 'demo-student' ? studentId : null,
-            student_name: studentName,
-            answers,
-            scores_breakdown: calculated.breakdown,
-            total_score: calculated.objectiveScore100,
-            max_score: 100,
-            essay_submission: answers
-          })
-          .catch(() => {});
-
-        setSaveSuccessMsg('✓ Đã đồng bộ kết quả bài thi vào cơ sở dữ liệu Supabase!');
-      } catch (err) {
-        console.warn('Sync exam submission error:', err);
-        setSaveSuccessMsg('✓ Đã lưu kết quả bài thi (chế độ bảo lưu offline/local)');
-      }
-    } else {
-      setSaveSuccessMsg('✓ Đã lưu kết quả bài thi thành công!');
-    }
+    setSaveSuccessMsg(
+      gradeResult.supabaseSynced
+        ? '✓ Đã chấm điểm tự động & đồng bộ realtime vào CSDL Supabase!'
+        : '✓ Đã chấm điểm tự động & lưu trữ kết quả an toàn!'
+    );
 
     setIsSaving(false);
   };
+
+  const handleRetryExam = () => {
+    setAnswers({});
+    setIsSubmitted(false);
+    setScoreResult(null);
+    setTimeLeftSeconds(timeLimitMinutes * 60);
+    setTimerActive(true);
+    setActiveQuestionIdx(0);
+    setReviewFilter('all');
+  };
+
 
   const currentQ = questions[activeQuestionIdx];
   const answeredCount = questions.filter(isQuestionAnswered).length;
@@ -539,10 +400,21 @@ export const MultiTypeExamViewer = ({
             <span>Nộp Bài Thi</span>
           </button>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              Điểm: {scoreResult?.objectiveScore100}/100
-            </span>
+          <div className="flex items-center gap-2 flex-wrap ml-auto">
+            <button
+              onClick={() => setShowInstantModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow kid-btn flex items-center gap-1.5"
+            >
+              <Award className="w-4 h-4 text-yellow-300" />
+              <span>Điểm: {scoreResult?.score10 ?? (scoreResult?.score100 ? (scoreResult.score100/10).toFixed(1) : 0)}/10 ({scoreResult?.score100 ?? 0}đ)</span>
+            </button>
+            <button
+              onClick={handleRetryExam}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs px-3 py-2 rounded-xl transition kid-btn flex items-center gap-1"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
+              <span>Làm lại</span>
+            </button>
           </div>
         )}
       </div>
@@ -1090,6 +962,16 @@ export const MultiTypeExamViewer = ({
           </div>
         </div>
       )}
+
+      {/* INSTANT AUTO-GRADING CELEBRATION MODAL */}
+      <InstantScoreModal
+        isOpen={showInstantModal}
+        onClose={() => setShowInstantModal(false)}
+        result={scoreResult}
+        studentName={studentName}
+        onReviewDetails={() => setShowInstantModal(false)}
+        onRetry={handleRetryExam}
+      />
 
     </div>
   );
