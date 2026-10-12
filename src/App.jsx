@@ -7,6 +7,7 @@ import TeacherStudio from './pages/TeacherStudio';
 import ProgressAnalytics from './pages/ProgressAnalytics';
 import ClassManager from './pages/ClassManager';
 import SchedulePage from './pages/SchedulePage';
+import GameLibraryPage from './pages/GameLibraryPage';
 import AuthModal from './pages/AuthModal';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
@@ -98,6 +99,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<Home userProfile={userProfile} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
             <Route path="/grade/:gradeSlug" element={<GradeDetail userProfile={userProfile} />} />
+            <Route path="/games" element={<GameLibraryPage userProfile={userProfile} />} />
             <Route path="/schedule" element={<SchedulePage userProfile={userProfile} />} />
             <Route path="/classes" element={<ClassManager userProfile={userProfile} />} />
             <Route path="/teacher-studio" element={<TeacherStudio userProfile={userProfile} />} />
@@ -109,7 +111,7 @@ export function App() {
           <div className="max-w-6xl mx-auto space-y-2">
             <p className="text-white font-extrabold text-sm">🎓 ĐỒNG HÀNH CÙNG CON TRƯỞNG THÀNH</p>
             <p>Hệ Thống Web App Học Tập & Quản Lý Giáo Dục AI Tiểu Học (Lớp 1 đến Lớp 5)</p>
-            <p className="text-gray-500">Tích hợp Quản lý Thời khóa biểu & Nhắc lịch tự động, AI Studio, Socratic AI Tutor, Supabase RLS & Focus Guardian.</p>
+            <p className="text-gray-500">Tích hợp Thư viện Game Tương tác, Bảng Xếp Hạng Toàn Trường, JavaScript SDK, Thời khóa biểu & Focus Guardian.</p>
           </div>
         </footer>
 
