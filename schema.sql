@@ -541,14 +541,24 @@ CREATE TABLE IF NOT EXISTS public.student_xp_logs (
   grade_level TEXT DEFAULT 'Lớp 1',
   avatar_url TEXT,
   xp_amount INT NOT NULL DEFAULT 10,
-  activity_type TEXT NOT NULL, -- 'exam', 'quiz', 'game', 'lesson', 'assignment', 'focus_bonus'
+  activity_type TEXT NOT NULL, -- 'exam', 'quiz', 'game', 'lesson', 'assignment', 'focus_bonus', 'teacher_bonus'
   activity_title TEXT,
+  teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  teacher_name TEXT,
+  reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Idempotent ALTER TABLE to ensure backward compatibility
+ALTER TABLE public.student_xp_logs 
+  ADD COLUMN IF NOT EXISTS teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS teacher_name TEXT,
+  ADD COLUMN IF NOT EXISTS reason TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_student_xp_created ON public.student_xp_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_student_xp_student ON public.student_xp_logs(student_id);
 CREATE INDEX IF NOT EXISTS idx_student_xp_grade ON public.student_xp_logs(grade_level);
+CREATE INDEX IF NOT EXISTS idx_student_xp_teacher ON public.student_xp_logs(teacher_id);
 
 ALTER TABLE public.student_xp_logs ENABLE ROW LEVEL SECURITY;
 
@@ -558,6 +568,11 @@ CREATE POLICY "Allow public select on student_xp_logs"
 
 CREATE POLICY "Allow students and system to insert student_xp_logs"
   ON public.student_xp_logs FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow teachers to insert bonus student_xp_logs"
+  ON public.student_xp_logs FOR ALL
+  USING (true)
   WITH CHECK (true);
 
 
