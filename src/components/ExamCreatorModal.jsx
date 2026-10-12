@@ -15,9 +15,19 @@ import {
   X,
   Eye,
   BookOpen,
-  Code2
+  Code2,
+  FileSpreadsheet,
+  Upload,
+  Download,
+  Dices,
+  Shuffle,
+  FileUp,
+  ClipboardList,
+  AlertCircle
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { examImportService } from '../lib/examImportService';
+import { questionBankService } from '../lib/questionBankService';
 
 // Mẫu đề thi chuẩn SGK chứa đầy đủ 5 dạng câu hỏi
 export const SAMPLE_EXAM_DATA = {
@@ -121,6 +131,22 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
   const [questions, setQuestions] = useState([]);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
 
+  // Shuffle Settings
+  const [shuffleQuestions, setShuffleQuestions] = useState(true);
+  const [shuffleOptions, setShuffleOptions] = useState(true);
+
+  // Submodal States
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isRandomGenModalOpen, setIsRandomGenModalOpen] = useState(false);
+  const [importRawText, setImportRawText] = useState('');
+  const [importStatusMsg, setImportStatusMsg] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Random Gen counts
+  const [randomEasyCount, setRandomEasyCount] = useState(3);
+  const [randomMediumCount, setRandomMediumCount] = useState(2);
+  const [randomHardCount, setRandomHardCount] = useState(1);
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
@@ -132,6 +158,101 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
     setDescription(SAMPLE_EXAM_DATA.description);
     setQuestions(JSON.parse(JSON.stringify(SAMPLE_EXAM_DATA.questions)));
     setActiveQuestionIdx(0);
+  };
+
+  // Import from Word / Excel file
+  const handleFileImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setImportStatusMsg('Đang phân tích dữ liệu tệp tin...');
+
+    try {
+      let parsed = [];
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.docx')) {
+        parsed = await examImportService.parseWordDocx(file);
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+        parsed = await examImportService.parseExcelSpreadsheet(file);
+      } else if (fileName.endsWith('.txt')) {
+        const text = await file.text();
+        parsed = examImportService.parseTextContent(text);
+      } else {
+        alert('Vui lòng chọn tệp .docx, .xlsx, .xls, .csv hoặc .txt!');
+        setIsImporting(false);
+        return;
+      }
+
+      if (parsed.length > 0) {
+        setQuestions(prev => [...prev, ...parsed]);
+        if (!title) {
+          setTitle(`Đề thi import từ ${file.name.replace(/\.[^/.]+$/, '')}`);
+        }
+        setIsImportModalOpen(false);
+        setImportStatusMsg('');
+        alert(`✓ Đã import thành công ${parsed.length} câu hỏi vào đề thi!`);
+      } else {
+        setImportStatusMsg('Không tìm thấy câu hỏi phù hợp. Hãy kiểm tra định dạng [Đáp án: A]!');
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      setImportStatusMsg('Lỗi đọc tệp: ' + err.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Import from Pasted Text
+  const handleTextImport = () => {
+    if (!importRawText.trim()) return;
+    try {
+      const parsed = examImportService.parseTextContent(importRawText);
+      if (parsed.length > 0) {
+        setQuestions(prev => [...prev, ...parsed]);
+        setIsImportModalOpen(false);
+        setImportRawText('');
+        setImportStatusMsg('');
+        alert(`✓ Đã bóc tách thành công ${parsed.length} câu hỏi từ văn bản!`);
+      } else {
+        setImportStatusMsg('Không nhận diện được câu hỏi. Hãy kiểm tra cấu trúc "Câu 1: ... A. ... B. ... [Đáp án: A]"!');
+      }
+    } catch (err) {
+      setImportStatusMsg('Lỗi bóc tách văn bản: ' + err.message);
+    }
+  };
+
+  // Generate Random Exam from Question Bank
+  const handleGenerateRandomExam = async () => {
+    try {
+      const randomExam = await questionBankService.generateRandomExam({
+        gradeSlug,
+        subject,
+        easyCount: Number(randomEasyCount) || 3,
+        mediumCount: Number(randomMediumCount) || 2,
+        hardCount: Number(randomHardCount) || 1,
+        title: title || `Đề Thi Ngẫu Nhiên (${Number(randomEasyCount) + Number(randomMediumCount) + Number(randomHardCount)} Câu - ${subject})`,
+        timeLimitMinutes: Number(timeLimitMinutes) || 20
+      });
+
+      if (randomExam.questions && randomExam.questions.length > 0) {
+        setTitle(randomExam.title);
+        setDescription(randomExam.description);
+        setTimeLimitMinutes(randomExam.timeLimitMinutes);
+        setQuestions(randomExam.questions);
+        setShuffleQuestions(true);
+        setShuffleOptions(true);
+        setActiveQuestionIdx(0);
+        setIsRandomGenModalOpen(false);
+        alert(`✓ Đã rút ngẫu nhiên thành công ${randomExam.questions.length} câu hỏi từ Ngân hàng câu hỏi!`);
+      } else {
+        alert('Không có đủ câu hỏi trong ngân hàng cho môn học này!');
+      }
+    } catch (err) {
+      console.error('Random exam error:', err);
+      alert('Lỗi tạo đề ngẫu nhiên: ' + err.message);
+    }
   };
 
   // Add question with a default template based on type
@@ -236,7 +357,9 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
       title: title.trim(),
       timeLimitMinutes: Number(timeLimitMinutes) || 20,
       description: description.trim(),
-      questions
+      questions,
+      shuffle_questions: shuffleQuestions,
+      shuffle_options: shuffleOptions
     };
 
     if (isSupabaseConfigured()) {
@@ -285,7 +408,7 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
       <div className="bg-white rounded-3xl w-full max-w-5xl shadow-2xl border-4 border-orange-100 flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
         
         {/* MODAL HEADER */}
-        <div className="bg-gradient-to-r from-[#FF6600] to-amber-500 text-white p-6 flex items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#FF6600] to-amber-500 text-white p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-white/20 text-xs font-black px-3 py-0.5 rounded-full uppercase tracking-wider">
@@ -299,22 +422,42 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
               Bộ Tạo Đề Thi 5 Dạng Cho Giáo Viên & Admin
             </h2>
             <p className="text-orange-100 text-xs font-medium">
-              Trắc nghiệm 1 đáp án (LaTeX), Nhiều đáp án (% điểm), Đúng/Sai, Điền khuyết, Tự luận tải ảnh.
+              Trắc nghiệm LaTeX, Nhiều đáp án, Đúng/Sai, Điền khuyết, Tự luận & Import Word/Excel.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-white/20 hover:bg-white/30 text-white font-black text-xs px-3 py-2 rounded-xl border border-white/30 transition kid-btn flex items-center gap-1.5"
+              title="Tải file Word (.docx) hoặc Excel (.xlsx) để tạo đề tự động"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              <span>Import Word/Excel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsRandomGenModalOpen(true)}
+              className="bg-white/20 hover:bg-white/30 text-white font-black text-xs px-3 py-2 rounded-xl border border-white/30 transition kid-btn flex items-center gap-1.5"
+              title="Rút ngẫu nhiên câu hỏi theo độ khó từ Ngân hàng câu hỏi"
+            >
+              <Dices className="w-4 h-4 text-yellow-300" />
+              <span>Rút Đề Ngẫu Nhiên</span>
+            </button>
+
             <button
               onClick={handleLoadSample}
-              className="bg-white text-[#FF6600] hover:bg-orange-50 font-black text-xs px-3.5 py-2 rounded-xl shadow transition kid-btn flex items-center gap-1.5"
+              className="bg-white text-[#FF6600] hover:bg-orange-50 font-black text-xs px-3 py-2 rounded-xl shadow transition kid-btn flex items-center gap-1.5"
               title="Nạp ngay bộ đề mẫu 5 dạng để xem thử"
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Nạp Đề Mẫu (1-Click)</span>
+              <span>Nạp Đề Mẫu</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition ml-1"
             >
               <X className="w-6 h-6" />
             </button>
@@ -388,6 +531,34 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
                 placeholder="Ví dụ: Đề thi gồm 5 câu kiểm tra toàn diện năng lực..."
                 className="w-full bg-white border border-gray-200 rounded-xl p-2.5 text-xs font-medium focus:outline-none focus:border-orange-500"
               />
+            </div>
+
+            {/* Cấu hình Đảo đề thi chống quay cóp */}
+            <div className="md:col-span-4 bg-white/70 p-3 rounded-xl border border-orange-200 flex flex-wrap items-center justify-between gap-4">
+              <span className="text-xs font-black text-gray-800 flex items-center gap-1.5">
+                <Shuffle className="w-4 h-4 text-[#FF6600]" />
+                Tính năng Chống Quay Cóp:
+              </span>
+              <div className="flex items-center gap-5 flex-wrap">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700 hover:text-orange-600 transition">
+                  <input
+                    type="checkbox"
+                    checked={shuffleQuestions}
+                    onChange={(e) => setShuffleQuestions(e.target.checked)}
+                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                  />
+                  <span>🎲 Tự động đảo thứ tự câu hỏi cho từng học sinh</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700 hover:text-orange-600 transition">
+                  <input
+                    type="checkbox"
+                    checked={shuffleOptions}
+                    onChange={(e) => setShuffleOptions(e.target.checked)}
+                    className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                  />
+                  <span>🔀 Tự động đảo vị trí đáp án A, B, C, D</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -825,6 +996,231 @@ export const ExamCreatorModal = ({ userProfile, onClose, onCreated }) => {
         )}
 
       </div>
+
+      {/* SUBMODAL 1: IMPORT FROM WORD / EXCEL / TEXT */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 border-4 border-orange-100 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-gray-800">
+                    Import Đề Thi Từ Word / Excel / Văn Bản
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Hỗ trợ tệp .docx, .xlsx, .csv, .txt cấu trúc chuẩn [Đáp án: A]
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Template Download Buttons */}
+            <div className="bg-orange-50/70 p-4 rounded-2xl border border-orange-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs font-bold text-orange-800">
+                📥 Chưa có file mẫu? Tải ngay mẫu chuẩn để soạn đề:
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => examImportService.downloadSampleWordFile()}
+                  className="bg-white hover:bg-orange-100 text-orange-700 border border-orange-300 font-black text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Mẫu Word (.txt)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => examImportService.downloadSampleExcelFile()}
+                  className="bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-300 font-black text-xs px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Mẫu Excel (.xlsx)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* File Upload Zone */}
+            <div className="border-2 border-dashed border-gray-300 hover:border-orange-500 rounded-2xl p-6 text-center transition bg-gray-50/50">
+              <input
+                type="file"
+                id="file-import-input"
+                accept=".docx,.xlsx,.xls,.csv,.txt"
+                onChange={handleFileImport}
+                className="hidden"
+                disabled={isImporting}
+              />
+              <label
+                htmlFor="file-import-input"
+                className="cursor-pointer inline-flex flex-col items-center gap-2"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-[#FF6600] flex items-center justify-center">
+                  <FileUp className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-black text-[#FF6600]">
+                  {isImporting ? 'Đang phân tích tệp tin...' : 'Bấm vào đây để chọn tệp Word (.docx) hoặc Excel (.xlsx)'}
+                </span>
+                <span className="text-[11px] text-gray-400">
+                  Hệ thống tự động quét các câu hỏi dạng "Câu 1: ... A. ... B. ... [Đáp án: A]"
+                </span>
+              </label>
+            </div>
+
+            {/* Paste Raw Text Area */}
+            <div className="space-y-2">
+              <label className="block text-xs font-extrabold text-gray-700 flex items-center justify-between">
+                <span>Hoặc Dán Văn Bản Đề Thi Trực Tiếp:</span>
+                <span className="text-[11px] text-gray-400">Định dạng [Đáp án: A, B]</span>
+              </label>
+              <textarea
+                rows={5}
+                value={importRawText}
+                onChange={(e) => setImportRawText(e.target.value)}
+                placeholder={`Câu 1: Kết quả của 10 + 20 là:\nA. 25\nB. 30\nC. 35\nD. 40\n[Đáp án: B]\n[Lời giải: 10 + 20 = 30]`}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            {importStatusMsg && (
+              <p className="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+                {importStatusMsg}
+              </p>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                onClick={handleTextImport}
+                disabled={!importRawText.trim() || isImporting}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow transition kid-btn flex items-center gap-1.5"
+              >
+                <ClipboardList className="w-4 h-4" />
+                <span>Bóc Tách & Nạp Vào Đề Thi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBMODAL 2: RANDOM EXAM GENERATOR FROM QUESTION BANK */}
+      {isRandomGenModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 border-4 border-orange-100 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                  <Dices className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-gray-800">
+                    Tạo Đề Thi Ngẫu Nhiên
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium">
+                    Rút ngẫu nhiên từ Ngân hàng câu hỏi theo độ khó
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRandomGenModalOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-200 text-center">
+                  <span className="text-[11px] font-black text-emerald-700 uppercase block mb-1">Mức Dễ</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={randomEasyCount}
+                    onChange={(e) => setRandomEasyCount(e.target.value)}
+                    className="w-full bg-white border border-emerald-300 rounded-xl p-2 text-center text-sm font-black focus:outline-none"
+                  />
+                  <span className="text-[10px] text-emerald-600 font-bold mt-1 block">câu hỏi</span>
+                </div>
+
+                <div className="bg-blue-50 p-3 rounded-2xl border border-blue-200 text-center">
+                  <span className="text-[11px] font-black text-blue-700 uppercase block mb-1">Trung Bình</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={randomMediumCount}
+                    onChange={(e) => setRandomMediumCount(e.target.value)}
+                    className="w-full bg-white border border-blue-300 rounded-xl p-2 text-center text-sm font-black focus:outline-none"
+                  />
+                  <span className="text-[10px] text-blue-600 font-bold mt-1 block">câu hỏi</span>
+                </div>
+
+                <div className="bg-rose-50 p-3 rounded-2xl border border-rose-200 text-center">
+                  <span className="text-[11px] font-black text-rose-700 uppercase block mb-1">Mức Khó</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={randomHardCount}
+                    onChange={(e) => setRandomHardCount(e.target.value)}
+                    className="w-full bg-white border border-rose-300 rounded-xl p-2 text-center text-sm font-black focus:outline-none"
+                  />
+                  <span className="text-[10px] text-rose-600 font-bold mt-1 block">câu hỏi</span>
+                </div>
+              </div>
+
+              {/* Summary pill */}
+              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 text-xs flex items-center justify-between font-bold text-amber-900">
+                <span>Tổng số câu hỏi sẽ rút:</span>
+                <span className="text-base font-black text-[#FF6600]">
+                  {Number(randomEasyCount || 0) + Number(randomMediumCount || 0) + Number(randomHardCount || 0)} câu
+                </span>
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-xl text-[11px] text-gray-500">
+                💡 Hệ thống sẽ tự động bật tính năng <strong>Trộn ngẫu nhiên câu hỏi & đáp án</strong> để mỗi học sinh khi làm bài đều nhận được đề thi với thứ tự khác nhau!
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsRandomGenModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateRandomExam}
+                className="bg-[#FF6600] hover:bg-orange-600 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow transition kid-btn flex items-center gap-1.5"
+              >
+                <Dices className="w-4 h-4" />
+                <span>Rút Ngẫu Nhiên Ngay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
