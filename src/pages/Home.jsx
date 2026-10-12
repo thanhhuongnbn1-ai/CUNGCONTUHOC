@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { GradeWorkspaces } from '../components/GradeWorkspaces';
 import { MaterialCard } from '../components/MaterialCard';
 import { MaterialViewer } from '../components/MaterialViewer';
-import { Sparkles, ShieldCheck, Bot, Layers, ArrowRight, BookOpen, ExternalLink, Gamepad2, Award } from 'lucide-react';
+import { Sparkles, ShieldCheck, Bot, Layers, ArrowRight, BookOpen, ExternalLink, Gamepad2, Award, Trophy, Crown, Star } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 // Seed sample production fallback materials if DB is initial
@@ -177,6 +178,79 @@ export const Home = ({ userProfile, onOpenAuth }) => {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* TOP 3 HỌC SINH XUẤT SẮC TUẦN NÀY WIDGET */}
+      <section className="max-w-7xl mx-auto px-4 py-3">
+        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 rounded-3xl p-6 sm:p-7 border-2 border-amber-200 shadow-md flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="space-y-1 text-center lg:text-left">
+            <div className="inline-flex items-center gap-1.5 bg-amber-200/80 text-amber-900 text-xs font-black px-3 py-1 rounded-full uppercase">
+              <Crown className="w-3.5 h-3.5 text-amber-700" />
+              <span>BẢNG VÀNG TUẦN NÀY DỰA TRÊN ĐIỂM XP</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black text-gray-800">
+              Vinh Danh Top Học Sinh Xuất Sắc 🏆
+            </h3>
+            <p className="text-xs text-gray-600 font-medium">
+              Tích lũy XP qua mỗi bài thi, trò chơi trí tuệ và hoạt động học tập để ghi danh bảng vàng!
+            </p>
+          </div>
+
+          {/* Quick 3 Champion Avatars */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
+            {/* Top 2 */}
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-slate-200 shadow-sm">
+              <span className="text-base font-black">🥈</span>
+              <img
+                src="https://api.dicebear.com/7.x/bottts/svg?seed=My3B"
+                alt="Top 2"
+                className="w-8 h-8 rounded-full bg-slate-100 border border-slate-300"
+              />
+              <div className="text-left text-xs">
+                <span className="font-black text-gray-800 block leading-tight">Lê Thảo My</span>
+                <span className="text-[10px] text-gray-500 font-bold">260 XP (Lớp 3B)</span>
+              </div>
+            </div>
+
+            {/* Top 1 */}
+            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white px-4 py-2.5 rounded-2xl shadow-md border-2 border-yellow-300 transform scale-105">
+              <span className="text-lg">👑</span>
+              <img
+                src="https://api.dicebear.com/7.x/bottts/svg?seed=Nam4A"
+                alt="Top 1"
+                className="w-9 h-9 rounded-full bg-white border-2 border-yellow-300"
+              />
+              <div className="text-left text-xs">
+                <span className="font-black block leading-tight">Nguyễn Hoàng Nam</span>
+                <span className="text-[10px] text-yellow-100 font-extrabold">285 XP (Lớp 4A)</span>
+              </div>
+            </div>
+
+            {/* Top 3 */}
+            <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-amber-200 shadow-sm">
+              <span className="text-base font-black">🥉</span>
+              <img
+                src="https://api.dicebear.com/7.x/bottts/svg?seed=student"
+                alt="Top 3"
+                className="w-8 h-8 rounded-full bg-orange-100 border border-amber-300"
+              />
+              <div className="text-left text-xs">
+                <span className="font-black text-gray-800 block leading-tight">Bé Minh Triết</span>
+                <span className="text-[10px] text-gray-500 font-bold">245 XP (Lớp 1A)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Link to Full Leaderboard */}
+          <Link
+            to="/leaderboard"
+            className="bg-[#FF6600] hover:bg-orange-600 text-white font-black text-xs px-5 py-3 rounded-2xl shadow-lg kid-btn flex items-center gap-2 whitespace-nowrap"
+          >
+            <Trophy className="w-4 h-4 text-yellow-300" />
+            <span>Xem Toàn Bộ BXH</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </section>
 
