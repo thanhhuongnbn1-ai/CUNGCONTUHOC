@@ -8,7 +8,9 @@ import ProgressAnalytics from './pages/ProgressAnalytics';
 import ClassManager from './pages/ClassManager';
 import SchedulePage from './pages/SchedulePage';
 import GameLibraryPage from './pages/GameLibraryPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import AuthModal from './pages/AuthModal';
+import XpNotificationToast from './components/XpNotificationToast';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 export function App() {
@@ -100,12 +102,17 @@ export function App() {
             <Route path="/" element={<Home userProfile={userProfile} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
             <Route path="/grade/:gradeSlug" element={<GradeDetail userProfile={userProfile} />} />
             <Route path="/games" element={<GameLibraryPage userProfile={userProfile} />} />
+            <Route path="/leaderboard" element={<LeaderboardPage userProfile={userProfile} />} />
+            <Route path="/ranking" element={<LeaderboardPage userProfile={userProfile} />} />
             <Route path="/schedule" element={<SchedulePage userProfile={userProfile} />} />
             <Route path="/classes" element={<ClassManager userProfile={userProfile} />} />
             <Route path="/teacher-studio" element={<TeacherStudio userProfile={userProfile} />} />
             <Route path="/analytics" element={<ProgressAnalytics userProfile={userProfile} />} />
           </Routes>
         </main>
+
+        {/* Global XP Awarding Toast */}
+        <XpNotificationToast />
 
         <footer className="bg-gray-900 text-gray-400 py-8 px-4 text-center border-t border-gray-800 text-xs font-medium">
           <div className="max-w-6xl mx-auto space-y-2">
