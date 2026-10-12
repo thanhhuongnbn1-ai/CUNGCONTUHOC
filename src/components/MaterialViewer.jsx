@@ -9,6 +9,8 @@ import { ArrowLeft, Bot, CheckCircle2, ShieldAlert, Award, Sparkles, RefreshCw, 
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MultiTypeExamViewer } from './MultiTypeExamViewer';
+import { autoGradingService } from '../lib/autoGradingService';
+import { InstantScoreModal } from './InstantScoreModal';
 
 export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Triết', onBack }) => {
   const [activeTab, setActiveTab] = useState('lesson');
@@ -29,6 +31,8 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
   const [userAnswers, setUserAnswers] = useState({});
   const [submittedQuiz, setSubmittedQuiz] = useState(false);
   const [score, setScore] = useState(0);
+  const [quizGradeResult, setQuizGradeResult] = useState(null);
+  const [showInstantQuizModal, setShowInstantQuizModal] = useState(false);
 
   // Interactive HTML5 Mini Game State
   const [gameMathA, setGameMathA] = useState(5);
@@ -65,23 +69,47 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
   const handleSubmitQuiz = async () => {
     if (!aiData.questions || aiData.questions.length === 0) return;
 
-    let correctCount = 0;
-    aiData.questions.forEach((q) => {
-      if (userAnswers[q.id] === q.correctIndex) {
-        correctCount++;
-      }
+    const formattedQuestions = aiData.questions.map(q => ({
+      ...q,
+      type: q.type || 'single_choice'
+    }));
+
+    // Chấm điểm trắc nghiệm tự động tức thì & đồng bộ Database Supabase
+    const gradeResult = await autoGradingService.submitAndSync({
+      questions: formattedQuestions,
+      answers: userAnswers,
+      timeSpentSeconds: 60,
+      material,
+      studentId: studentId || 'demo-student',
+      studentName
     });
 
-    const calculatedScore = Math.round((correctCount / aiData.questions.length) * 100);
-    setScore(calculatedScore);
+    setScore(gradeResult.score100);
+    setQuizGradeResult(gradeResult);
     setSubmittedQuiz(true);
+    setShowInstantQuizModal(true);
+
+    try {
+      confetti({
+        particleCount: 110,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+    } catch (_) {}
 
     // Tự động đồng bộ điểm số vào SDK & Database
     await EdTechGameSDK.submitScore({
-      score: calculatedScore,
+      score: gradeResult.score100,
       maxScore: 100,
       metadata: { type: 'quiz', title: material.title }
     });
+  };
+
+  const handleRetryQuiz = () => {
+    setUserAnswers({});
+    setSubmittedQuiz(false);
+    setScore(0);
+    setQuizGradeResult(null);
   };
 
   // Submit điểm từ Game HTML5 tương tác
@@ -285,17 +313,34 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
                 <span>Nộp bài & Tự động ghi điểm SDK</span>
               </button>
             ) : (
-              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-center animate-fade-in">
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-center animate-fade-in space-y-3">
                 <Award className="w-16 h-16 text-emerald-500 mx-auto mb-2 animate-bounce" />
                 <h2 className="text-2xl font-black text-emerald-800">
                   Chúc mừng em đã hoàn thành thử thách!
                 </h2>
-                <p className="text-emerald-700 font-extrabold text-xl mt-1">
-                  Điểm số đạt được: <span className="bg-emerald-600 text-white px-4 py-1 rounded-full">{score} / 100</span>
+                <p className="text-emerald-700 font-extrabold text-xl">
+                  Điểm số đạt được: <span className="bg-emerald-600 text-white px-4 py-1 rounded-full">{score} / 100 ({parseFloat(((score/100)*10).toFixed(1))} / 10)</span>
                 </p>
-                <p className="text-xs text-gray-500 mt-2 font-bold">
-                  ✓ Điểm đã được gửi về cơ sở dữ liệu Supabase qua EdTechGameSDK.
+                <p className="text-xs text-gray-500 font-bold">
+                  ✓ Hệ thống đã tự động chấm điểm và đồng bộ vào bảng exam_submissions & student_progress trên CSDL Supabase.
                 </p>
+
+                <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
+                  <button
+                    onClick={() => setShowInstantQuizModal(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow kid-btn flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4 text-yellow-300" />
+                    <span>Xem Bảng Điểm Tự Động Chi Tiết</span>
+                  </button>
+                  <button
+                    onClick={handleRetryQuiz}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-extrabold text-xs px-4 py-2.5 rounded-xl transition kid-btn flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-4 h-4 text-orange-600" />
+                    <span>Làm Lại Thử Thách</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -423,6 +468,16 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
       </div>
     </>
   )}
+
+  {/* MODAL BẢNG ĐIỂM CHẤM TỰ ĐỘNG TỨC THÌ */}
+  <InstantScoreModal
+    isOpen={showInstantQuizModal}
+    onClose={() => setShowInstantQuizModal(false)}
+    result={quizGradeResult}
+    studentName={studentName}
+    onReviewDetails={() => setShowInstantQuizModal(false)}
+    onRetry={handleRetryQuiz}
+  />
 </div>
 );
 };
