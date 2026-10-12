@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useFocusGuardian } from '../hooks/useFocusGuardian';
+import { useContentProtection } from '../hooks/useContentProtection';
 import { FocusGuardianModal } from './FocusGuardianModal';
 import { StrictAiTutor } from './StrictAiTutor';
-import { ArrowLeft, Bot, CheckCircle2, ShieldAlert, Award, Sparkles, RefreshCw, Volume2 } from 'lucide-react';
+import { SecureContentViewer } from './SecureContentViewer';
+import { EdTechGameSDK } from '../lib/gameSDK';
+import { ArrowLeft, Bot, CheckCircle2, ShieldAlert, Award, Sparkles, RefreshCw, Volume2, Gamepad2, ShieldCheck, Lock, Play, AlertTriangle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-export const MaterialViewer = ({ material, studentId, onBack }) => {
+export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Triết', onBack }) => {
   const [activeTab, setActiveTab] = useState('lesson');
   const [isAiTutorOpen, setIsAiTutorOpen] = useState(false);
+  const [gameResult, setGameResult] = useState(null);
+
+  // Content Protection (Anti-copy & Download Limiter)
+  const { warningMessage } = useContentProtection({ isProtected: true });
 
   // Focus Guardian Hook attached to current material & student
   const { isFocusLost, violationCount, lastViolationTime, dismissWarning } = useFocusGuardian({
@@ -22,8 +29,32 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
   const [submittedQuiz, setSubmittedQuiz] = useState(false);
   const [score, setScore] = useState(0);
 
+  // Interactive HTML5 Mini Game State
+  const [gameMathA, setGameMathA] = useState(5);
+  const [gameMathB, setGameMathB] = useState(3);
+  const [gameAnswerInput, setGameAnswerInput] = useState('');
+  const [gameScoreCount, setGameScoreCount] = useState(0);
+  const [gameTotalQuestions, setGameTotalQuestions] = useState(0);
+
   // Parse AI Generated Content
   const aiData = material?.ai_generated_content || {};
+
+  useEffect(() => {
+    // 1. Khởi tạo Game SDK
+    if (material?.id) {
+      EdTechGameSDK.init({
+        studentId: studentId || 'demo-student',
+        materialId: material.id
+      });
+
+      // Lắng nghe điểm số được ghi nhận tự động từ SDK
+      const unsubscribe = EdTechGameSDK.onScoreSaved((result) => {
+        setGameResult(result);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [material, studentId]);
 
   const handleSelectOption = (qId, optionIdx) => {
     if (submittedQuiz) return;
@@ -44,36 +75,51 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
     setScore(calculatedScore);
     setSubmittedQuiz(true);
 
-    // Trigger celebration confetti
-    if (calculatedScore >= 70) {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
+    // Tự động đồng bộ điểm số vào SDK & Database
+    await EdTechGameSDK.submitScore({
+      score: calculatedScore,
+      maxScore: 100,
+      metadata: { type: 'quiz', title: material.title }
+    });
+  };
 
-    // Save Progress to Supabase DB
-    if (studentId && isSupabaseConfigured()) {
-      try {
-        await supabase
-          .from('student_progress')
-          .upsert({
-            student_id: studentId,
-            material_id: material.id,
-            status: 'completed',
-            score: calculatedScore,
-            completed_at: new Date().toISOString()
-          }, { onConflict: 'student_id,material_id' });
-      } catch (err) {
-        console.warn('Failed to save student progress:', err);
-      }
+  // Submit điểm từ Game HTML5 tương tác
+  const handleAnswerGameMath = async (e) => {
+    e.preventDefault();
+    const parsedAns = Number(gameAnswerInput);
+    const correct = parsedAns === (gameMathA + gameMathB);
+
+    const nextScore = correct ? gameScoreCount + 20 : gameScoreCount;
+    const nextTotal = gameTotalQuestions + 1;
+    setGameScoreCount(nextScore);
+    setGameTotalQuestions(nextTotal);
+    setGameAnswerInput('');
+
+    if (nextTotal >= 5) {
+      // Kết thúc ván game -> Kích hoạt JavaScript Game SDK tự động ghi điểm về Supabase DB
+      await EdTechGameSDK.submitScore({
+        score: nextScore,
+        maxScore: 100,
+        metadata: { gameType: 'math_speed_challenge', totalQuestions: 5 }
+      });
+    } else {
+      // Câu hỏi tiếp theo
+      setGameMathA(Math.floor(Math.random() * 8) + 2);
+      setGameMathB(Math.floor(Math.random() * 8) + 1);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF9] py-6 px-4 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#FFFDF9] py-6 px-4 max-w-6xl mx-auto select-none" style={{ userSelect: 'none' }}>
       
+      {/* Cảnh báo bảo vệ bản quyền chống copy */}
+      {warningMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-2xl border-2 border-white flex items-center gap-2 animate-bounce">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <span>{warningMessage}</span>
+        </div>
+      )}
+
       {/* Focus Guardian Warning Pop-up Modal */}
       <FocusGuardianModal
         isOpen={isFocusLost}
@@ -101,11 +147,16 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
           <span>Quay lại Thư mục Lớp</span>
         </button>
 
-        {/* Live Focus Guardian Counter Indicator */}
+        {/* Live Focus Guardian & Protection Indicators */}
         <div className="flex items-center gap-3">
+          <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-bold text-emerald-800 flex items-center gap-1.5 shadow-sm">
+            <Lock className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Chống copy & Tải về: BẬT</span>
+          </div>
+
           <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-bold text-amber-800 flex items-center gap-1.5 shadow-sm">
             <ShieldAlert className="w-4 h-4 text-amber-600 animate-pulse" />
-            <span>Chống xao nhãng:</span>
+            <span>Focus:</span>
             <span className="bg-amber-200 px-2 py-0.5 rounded-full text-amber-900 font-black">
               {violationCount} vi phạm
             </span>
@@ -121,20 +172,49 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
         </div>
       </div>
 
-      {/* Main Material Viewer Card */}
+      {/* Thông báo điểm số Game SDK tự động ghi nhận */}
+      {gameResult && (
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 rounded-3xl shadow-xl flex items-center justify-between gap-4 mb-6 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white text-emerald-600 rounded-2xl flex items-center justify-center font-black text-xl shadow">
+              🏆
+            </div>
+            <div>
+              <span className="text-xs uppercase font-black text-emerald-200 tracking-wider">
+                SDK JAVASCRIPT GHI NHẬN ĐIỂM TỰ ĐỘNG THÀNH CÔNG
+              </span>
+              <h4 className="text-lg font-black leading-tight">
+                Điểm số đạt được: {gameResult.score} / {gameResult.maxScore} ({gameResult.percentage}%)
+              </h4>
+            </div>
+          </div>
+          <div className="bg-white/20 px-4 py-2 rounded-2xl text-xs font-extrabold text-white text-center">
+            ✓ Đã đồng bộ Supabase DB
+          </div>
+        </div>
+      )}
+
+      {/* Main Material Card */}
       <div className="bg-white rounded-3xl border-4 border-orange-200 shadow-xl overflow-hidden p-6 sm:p-8">
         
         {/* Title & Subject Header */}
-        <div className="mb-6 pb-4 border-b border-orange-100">
-          <span className="bg-orange-100 text-orange-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-            {material?.subject || 'Bài Học'}
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-800 mt-2">
-            {material?.title}
-          </h1>
-          <p className="text-gray-500 font-medium text-sm mt-1">
-            {material?.description}
-          </p>
+        <div className="mb-6 pb-4 border-b border-orange-100 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="bg-orange-100 text-orange-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+              {material?.subject || 'Bài Học'}
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-800 mt-2">
+              {material?.title}
+            </h1>
+            <p className="text-gray-500 font-medium text-sm mt-1">
+              {material?.description}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-2xl text-xs font-bold text-gray-600">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Bản quyền: {studentName}</span>
+          </div>
         </div>
 
         {/* Dynamic Content Display based on content_type */}
@@ -191,7 +271,7 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
                 className="w-full bg-[#FF6600] hover:bg-orange-600 disabled:opacity-50 text-white font-black text-lg py-4 rounded-2xl shadow-lg kid-btn flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-6 h-6" />
-                <span>Nộp bài & Kiểm tra kết quả</span>
+                <span>Nộp bài & Tự động ghi điểm SDK</span>
               </button>
             ) : (
               <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-center animate-fade-in">
@@ -202,15 +282,87 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
                 <p className="text-emerald-700 font-extrabold text-xl mt-1">
                   Điểm số đạt được: <span className="bg-emerald-600 text-white px-4 py-1 rounded-full">{score} / 100</span>
                 </p>
+                <p className="text-xs text-gray-500 mt-2 font-bold">
+                  ✓ Điểm đã được gửi về cơ sở dữ liệu Supabase qua EdTechGameSDK.
+                </p>
               </div>
             )}
           </div>
         )}
 
-        {/* 2. STORY CONTENT TYPE */}
+        {/* 2. GAME HTML5 ĐẤU TRƯỜNG TƯ DUY (KẾT NỐI SDK GHI ĐIỂM TỰ ĐỘNG) */}
+        {material?.content_type === 'game' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white p-6 rounded-3xl shadow-lg flex items-center justify-between">
+              <div>
+                <span className="bg-white/20 text-xs font-black px-3 py-1 rounded-full uppercase">HTML5 GAME SDK LIVE</span>
+                <h2 className="text-2xl font-black mt-1">🎮 Đấu Trường Phép Tính Nhanh (Game HTML5)</h2>
+                <p className="text-purple-100 text-xs font-bold mt-1">
+                  Mỗi câu đúng cộng 20 điểm. Hoàn thành 5 câu để SDK tự động gửi điểm về Database!
+                </p>
+              </div>
+              <div className="bg-white/20 p-3 rounded-2xl text-center">
+                <span className="text-xs font-bold block opacity-80">Điểm hiện tại</span>
+                <span className="text-2xl font-black">{gameScoreCount}/100</span>
+              </div>
+            </div>
+
+            {gameTotalQuestions < 5 ? (
+              <form onSubmit={handleAnswerGameMath} className="bg-purple-50 p-6 sm:p-8 rounded-3xl border-2 border-purple-200 text-center space-y-4">
+                <span className="text-xs font-black text-purple-700 uppercase">CÂU HỎI {gameTotalQuestions + 1} / 5</span>
+                <div className="text-4xl sm:text-5xl font-black text-purple-900 tracking-wider">
+                  {gameMathA} + {gameMathB} = ?
+                </div>
+
+                <div className="max-w-xs mx-auto flex items-center gap-2 pt-2">
+                  <input
+                    type="number"
+                    required
+                    value={gameAnswerInput}
+                    onChange={(e) => setGameAnswerInput(e.target.value)}
+                    placeholder="Nhập kết quả..."
+                    className="w-full bg-white border-2 border-purple-300 rounded-2xl p-3 text-xl font-black text-center focus:outline-none focus:border-purple-600 shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-black text-sm px-6 py-3.5 rounded-2xl shadow kid-btn whitespace-nowrap"
+                  >
+                    Trả lời
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-8 text-center space-y-3 animate-fade-in">
+                <div className="text-5xl">🎉</div>
+                <h3 className="text-2xl font-black text-emerald-800">Hoàn thành ván game xuất sắc!</h3>
+                <p className="text-base font-bold text-emerald-700">
+                  Tổng điểm: <strong className="text-emerald-900 text-2xl">{gameScoreCount}/100</strong>
+                </p>
+                <div className="inline-flex items-center gap-2 bg-emerald-600 text-white font-extrabold text-xs px-4 py-2 rounded-full shadow">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>SDK đã gửi kết quả vào bảng game_scores trên Supabase</span>
+                </div>
+                <div>
+                  <button
+                    onClick={() => {
+                      setGameScoreCount(0);
+                      setGameTotalQuestions(0);
+                      setGameResult(null);
+                    }}
+                    className="mt-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow kid-btn"
+                  >
+                    Chơi lại ván mới
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. STORY CONTENT TYPE (BẢO VỆ CHỐNG SAO CHÉP & BÔI ĐEN VĂN BẢN) */}
         {material?.content_type === 'story' && (
           <div className="space-y-6">
-            <div className="bg-amber-50/70 p-6 rounded-3xl border-2 border-amber-200 leading-relaxed text-gray-800 text-base font-medium space-y-4">
+            <div className="bg-amber-50/70 p-6 rounded-3xl border-2 border-amber-200 leading-relaxed text-gray-800 text-base font-medium space-y-4 relative select-none">
               {aiData.storyParagraphs?.map((p, idx) => (
                 <p key={idx} className="indent-4">{p}</p>
               ))}
@@ -220,7 +372,7 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
               <div className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-300 text-sm font-bold text-orange-900 flex items-center gap-3">
                 <Sparkles className="w-8 h-8 text-orange-500 flex-shrink-0" />
                 <div>
-                  <span className="block font-black text-orange-700">Bài Học Bài Độc/Kiến Thức Cốt Lõi:</span>
+                  <span className="block font-black text-orange-700">Bài Học Rút Ra:</span>
                   {aiData.moralLesson}
                 </div>
               </div>
@@ -228,64 +380,33 @@ export const MaterialViewer = ({ material, studentId, onBack }) => {
           </div>
         )}
 
-        {/* 3. GAME CONTENT TYPE */}
-        {material?.content_type === 'game' && (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 rounded-3xl text-center shadow-lg">
-              <h2 className="text-2xl font-black">🎮 ĐẤU TRƯỜNG TƯ DUY GAME HỌC TẬP</h2>
-              <p className="text-purple-100 text-sm font-bold mt-1">Hãy giúp hiệp sĩ nhỏ vượt qua các thử thách!</p>
-            </div>
-
-            {aiData.challenges?.map((item, idx) => (
-              <div key={idx} className="bg-purple-50 p-5 rounded-2xl border-2 border-purple-200">
-                <h4 className="font-black text-purple-900 text-base mb-2">Thử thách {idx + 1}: {item.prompt}</h4>
-                <div className="flex flex-wrap gap-3 mt-3">
-                  {item.options?.map((opt, oIdx) => (
-                    <button
-                      key={oIdx}
-                      onClick={() => alert(`Chính xác! Em nhận được huy hiệu ${item.rewardBadge || '🏆 Hiệp Sĩ Thông Thái'}`)}
-                      className="bg-white hover:bg-purple-600 hover:text-white border-2 border-purple-300 text-purple-800 font-bold px-4 py-2.5 rounded-xl text-sm transition shadow-sm kid-btn"
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 4. IFRAME EMBED CONTENT TYPE (QUIZIZZ, WORDWALL, YOUTUBE) */}
+        {/* 4. IFRAME EMBED (QUIZIZZ, WORDWALL, HTML5 IFRAME VỚI CHỐNG TẢI) */}
         {(material?.content_type === 'iframe_embed' || material?.iframe_url) && (
           <div className="space-y-4">
-            <div className="w-full aspect-video rounded-3xl overflow-hidden border-4 border-orange-300 shadow-xl bg-black">
+            <div className="w-full aspect-video rounded-3xl overflow-hidden border-4 border-orange-300 shadow-xl bg-black relative">
               <iframe
-                src={material.iframe_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ'}
+                src={material.iframe_url || 'https://wordwall.net/embed/4a1c5b8b8d4f4e249f7e53f191f4d96a?themeId=1&templateId=5&fontStackId=0'}
                 title={material.title}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
-            <p className="text-center text-xs text-gray-500 italic">
-              * Hệ thống Focus Guardian vẫn đang theo dõi tiến độ tập trung của em khi chơi trò chơi nhúng này!
+            <p className="text-center text-xs text-gray-500 font-bold">
+              * Khóa nút tải file & Video/iFrame được bảo mật. Điểm số từ HTML5 Game tự động bắt qua SDK!
             </p>
           </div>
         )}
 
-        {/* 5. INTERACTIVE LECTURE CONTENT TYPE */}
-        {material?.content_type === 'interactive_lecture' && (
-          <div className="space-y-6">
-            {aiData.sections?.map((sec, idx) => (
-              <div key={idx} className="bg-sky-50 p-6 rounded-3xl border-2 border-sky-200">
-                <h3 className="font-black text-sky-900 text-lg mb-2">{sec.heading}</h3>
-                <p className="text-gray-700 text-sm font-medium leading-relaxed mb-4">{sec.content}</p>
-                <div className="bg-white p-4 rounded-2xl border border-sky-300 text-xs font-bold text-sky-800">
-                  <span className="font-black text-orange-600">❓ Câu hỏi kiểm tra nhanh:</span> {sec.interactiveCheck}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* 5. SECURE PDF / VIDEO VIEWER */}
+        {(material?.content_type === 'pdf' || material?.content_type === 'video') && (
+          <SecureContentViewer
+            contentType={material.content_type}
+            sourceUrl={material.source_url}
+            title={material.title}
+            studentName={studentName}
+            studentId={studentId || 'HS-2026'}
+          />
         )}
 
       </div>
