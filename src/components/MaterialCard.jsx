@@ -1,8 +1,13 @@
 import React from 'react';
-import { PlayCircle, Gamepad2, BookOpen, HelpCircle, ExternalLink, Sparkles, CheckCircle2, Clock } from 'lucide-react';
+import { PlayCircle, Gamepad2, BookOpen, HelpCircle, ExternalLink, Sparkles, CheckCircle2, Clock, CheckSquare } from 'lucide-react';
 
 export const MaterialCard = ({ material, progress, onSelect }) => {
+  const isMultiTypeExam = material.content_type === 'exam' || material.ai_generated_content?.type === 'multi_type_exam';
+
   const getTypeBadge = (type) => {
+    if (isMultiTypeExam) {
+      return { label: 'Đề Thi 5 Dạng SGK', bg: 'bg-rose-100 text-rose-700 border-rose-300 font-black', icon: CheckSquare };
+    }
     switch (type) {
       case 'quiz':
         return { label: 'Bài Trắc Nghiệm', bg: 'bg-purple-100 text-purple-700 border-purple-200', icon: HelpCircle };
@@ -66,9 +71,11 @@ export const MaterialCard = ({ material, progress, onSelect }) => {
 
         <button
           onClick={() => onSelect(material)}
-          className="bg-[#FF6600] hover:bg-orange-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow flex items-center gap-1.5 kid-btn"
+          className={`${
+            isMultiTypeExam ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#FF6600] hover:bg-orange-600'
+          } text-white text-xs font-black px-4 py-2 rounded-xl shadow flex items-center gap-1.5 kid-btn`}
         >
-          <span>Học ngay</span>
+          <span>{isMultiTypeExam ? 'Làm bài thi' : 'Học ngay'}</span>
           <PlayCircle className="w-4 h-4" />
         </button>
       </div>
