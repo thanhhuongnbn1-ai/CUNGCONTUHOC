@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2, Trophy, Download, Smartphone, WifiOff } from 'lucide-react';
 import { pwaSyncService } from '../lib/pwaSyncService';
 
-export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout, onOpenInstallModal }) => {
+export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout, onOpenInstallModal, onOpenProfile }) => {
   const location = useLocation();
   const [isStandalone, setIsStandalone] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
@@ -163,21 +163,36 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout, onOpen
             </div>
 
             {userProfile ? (
-              <div className="flex items-center gap-2 bg-orange-700/80 px-3 py-1 rounded-full border border-orange-400/40">
-                <img
-                  src={userProfile.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=student'}
-                  alt="Avatar"
-                  className="w-7 h-7 rounded-full bg-white border border-orange-200"
-                />
-                <span className="text-xs font-black text-white max-w-[100px] truncate">
-                  {userProfile.full_name || userProfile.email}
-                </span>
+              <div className="flex items-center gap-1.5 bg-orange-700/80 pl-1.5 pr-2 py-1 rounded-full border border-orange-400/40">
+                <button
+                  onClick={onOpenProfile}
+                  className="flex items-center gap-2 hover:opacity-90 transition p-0.5 rounded-full"
+                  title="Nhấp để Quản Lý Hồ Sơ Cá Nhân (Tên, Avatar, SĐT, Trường/Lớp)"
+                >
+                  <img
+                    src={userProfile.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=student'}
+                    alt="Avatar"
+                    className="w-7 h-7 rounded-full bg-white border border-orange-200 object-cover"
+                  />
+                  <span className="text-xs font-black text-white max-w-[85px] sm:max-w-[120px] truncate">
+                    {userProfile.full_name || userProfile.email}
+                  </span>
+                </button>
+
+                <Link
+                  to="/profile"
+                  className="hidden md:flex text-orange-200 hover:text-white p-1 rounded-full hover:bg-orange-600/50 transition"
+                  title="Mở Trang Hồ Sơ Cá Nhân"
+                >
+                  <User className="w-3.5 h-3.5" />
+                </Link>
+
                 <button
                   onClick={onLogout}
-                  className="text-orange-200 hover:text-white ml-1 p-0.5"
+                  className="text-orange-200 hover:text-white ml-0.5 p-1 rounded-full hover:bg-orange-600/50 transition"
                   title="Đăng xuất"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
