@@ -9,31 +9,41 @@ import ClassManager from './pages/ClassManager';
 import SchedulePage from './pages/SchedulePage';
 import GameLibraryPage from './pages/GameLibraryPage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import ProfilePage from './pages/ProfilePage';
 import AuthModal from './pages/AuthModal';
+import ProfileModal from './components/ProfileModal';
 import XpNotificationToast from './components/XpNotificationToast';
 import PwaInstallModal from './components/PwaInstallModal';
 import OfflineSyncBanner from './components/OfflineSyncBanner';
 import AiTutorChatWidget from './components/AiTutorChatWidget';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { getInitialUserProfile } from './lib/profileService';
 
 export function App() {
-  const [userProfile, setUserProfile] = useState({
-    id: 'demo-student-id',
-    email: 'hocsinh@vuihoc.vn',
-    full_name: 'Bé Minh Triết',
-    role: 'student',
-    avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=student'
-  });
-  
+  const [userProfile, setUserProfile] = useState(getInitialUserProfile);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
 
   useEffect(() => {
     const handleOpenPwa = () => setIsPwaModalOpen(true);
+    const handleOpenProfile = () => setIsProfileModalOpen(true);
+    const handleProfileUpdated = (e) => {
+      if (e.detail?.profile) {
+        setUserProfile(e.detail.profile);
+      }
+    };
+
     window.addEventListener('open_pwa_install_modal', handleOpenPwa);
+    window.addEventListener('open_profile_modal', handleOpenProfile);
+    window.addEventListener('user_profile_updated', handleProfileUpdated);
 
     if (!isSupabaseConfigured()) {
-      return () => window.removeEventListener('open_pwa_install_modal', handleOpenPwa);
+      return () => {
+        window.removeEventListener('open_pwa_install_modal', handleOpenPwa);
+        window.removeEventListener('open_profile_modal', handleOpenProfile);
+        window.removeEventListener('user_profile_updated', handleProfileUpdated);
+      };
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -52,7 +62,9 @@ export function App() {
 
     return () => {
       window.removeEventListener('open_pwa_install_modal', handleOpenPwa);
-      subscription.unsubscribe();
+      window.removeEventListener('open_profile_modal', handleOpenProfile);
+      window.removeEventListener('user_profile_updated', handleProfileUpdated);
+      subscription?.unsubscribe?.();
     };
   }, []);
 
@@ -105,12 +117,21 @@ export function App() {
           onRoleSwitch={handleRoleSwitch}
           onLogout={handleLogout}
           onOpenInstallModal={() => setIsPwaModalOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
         />
 
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
           onAuthSuccess={(profile) => setUserProfile(profile)}
+        />
+
+        {/* Quản Lý Hồ Sơ Cá Nhân (Profile Modal) */}
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          userProfile={userProfile}
+          onProfileUpdated={(updatedProfile) => setUserProfile(updatedProfile)}
         />
 
         {/* PWA Native Installation Modal */}
@@ -131,6 +152,7 @@ export function App() {
             <Route path="/classes" element={<ClassManager userProfile={userProfile} />} />
             <Route path="/teacher-studio" element={<TeacherStudio userProfile={userProfile} />} />
             <Route path="/analytics" element={<ProgressAnalytics userProfile={userProfile} />} />
+            <Route path="/profile" element={<ProfilePage userProfile={userProfile} onProfileUpdated={(p) => setUserProfile(p)} />} />
           </Routes>
         </main>
 
