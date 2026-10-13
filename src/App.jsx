@@ -11,6 +11,8 @@ import GameLibraryPage from './pages/GameLibraryPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import AuthModal from './pages/AuthModal';
 import XpNotificationToast from './components/XpNotificationToast';
+import PwaInstallModal from './components/PwaInstallModal';
+import OfflineSyncBanner from './components/OfflineSyncBanner';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 export function App() {
@@ -23,9 +25,15 @@ export function App() {
   });
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isPwaModalOpen, setIsPwaModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    const handleOpenPwa = () => setIsPwaModalOpen(true);
+    window.addEventListener('open_pwa_install_modal', handleOpenPwa);
+
+    if (!isSupabaseConfigured()) {
+      return () => window.removeEventListener('open_pwa_install_modal', handleOpenPwa);
+    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -41,7 +49,10 @@ export function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      window.removeEventListener('open_pwa_install_modal', handleOpenPwa);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId, email) => {
@@ -84,17 +95,28 @@ export function App() {
     <Router>
       <div className="min-h-screen flex flex-col bg-[#FFF9F3] text-gray-800 font-sans selection:bg-orange-200">
         
+        {/* PWA Offline Mode & Database Sync Banner */}
+        <OfflineSyncBanner />
+
         <Navbar
           userProfile={userProfile}
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onRoleSwitch={handleRoleSwitch}
           onLogout={handleLogout}
+          onOpenInstallModal={() => setIsPwaModalOpen(true)}
         />
 
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
           onAuthSuccess={(profile) => setUserProfile(profile)}
+        />
+
+        {/* PWA Native Installation Modal */}
+        <PwaInstallModal
+          isOpen={isPwaModalOpen}
+          onClose={() => setIsPwaModalOpen(false)}
+          userProfile={userProfile}
         />
 
         <main className="flex-1">
@@ -117,7 +139,7 @@ export function App() {
         <footer className="bg-gray-900 text-gray-400 py-8 px-4 text-center border-t border-gray-800 text-xs font-medium">
           <div className="max-w-6xl mx-auto space-y-2">
             <p className="text-white font-extrabold text-sm">🎓 ĐỒNG HÀNH CÙNG CON TRƯỞNG THÀNH</p>
-            <p>Hệ Thống Web App Học Tập & Quản Lý Giáo Dục AI Tiểu Học (Lớp 1 đến Lớp 5)</p>
+            <p>Hệ Thống Web App Học Tập & Quản Lý Giáo Dục AI Tiểu Học (Lớp 1 đến Lớp 5) - Hỗ trợ PWA Native & Offline CSDL</p>
             <p className="text-gray-500">Tích hợp Thư viện Game Tương tác, Bảng Xếp Hạng Toàn Trường, JavaScript SDK, Thời khóa biểu & Focus Guardian.</p>
           </div>
         </footer>
