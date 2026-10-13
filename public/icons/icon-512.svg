@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="pwaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5500" />
+      <stop offset="50%" stop-color="#FF7700" />
+      <stop offset="100%" stop-color="#FFAA00" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Background -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#pwaGrad)" filter="url(#shadow)"/>
+  
+  <!-- Subtle inner border -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="none" stroke="#FFE4B5" stroke-width="6" opacity="0.4"/>
+
+  <!-- Graduation Cap Top Diamond -->
+  <polygon points="256,120 420,195 256,270 92,195" fill="#FFFFFF" filter="url(#shadow)"/>
+  
+  <!-- Cap Skull Base -->
+  <path d="M150,225 L150,305 C150,355 362,355 362,305 L362,225 Z" fill="#FFFFFF" opacity="0.95"/>
+  
+  <!-- Tassel ribbon -->
+  <path d="M400,200 L400,320 L416,335 L400,350 L384,335 Z" fill="#FEF08A"/>
+  <circle cx="256" cy="195" r="14" fill="#FEF08A"/>
+
+  <!-- Golden Star of Excellence -->
+  <g transform="translate(256, 395) scale(0.9)">
+    <path d="M 0,-40 L 12,-12 L 42,-8 L 20,14 L 26,44 L 0,28 L -26,44 L -20,14 L -42,-8 L -12,-12 Z" fill="#FDE047" stroke="#CA8A04" stroke-width="3"/>
+  </g>
+</svg>
