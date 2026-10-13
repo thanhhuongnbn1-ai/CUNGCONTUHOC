@@ -15,8 +15,11 @@ export const MaterialCard = ({ material, progress, onSelect, onAssign }) => {
         return { label: 'Truyện Cổ Tích AI', bg: 'bg-amber-100 text-amber-700 border-amber-200', icon: BookOpen };
       case 'game':
         return { label: 'Game Đấu Trường', bg: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: Gamepad2 };
-      case 'iframe_embed':
-        return { label: 'Trò Chơi Nhúng (iFrame)', bg: 'bg-blue-100 text-blue-700 border-blue-200', icon: ExternalLink };
+      case 'iframe_embed': {
+        const prov = material.ai_generated_content?.provider || material.provider;
+        const provLabel = prov === 'wordwall' ? 'Wordwall' : prov === 'quizizz' ? 'Quizizz' : prov === 'kahoot' ? 'Kahoot!' : prov === 'canva' ? 'Canva' : prov === 'genially' ? 'Genially' : 'iFrame';
+        return { label: `Game Nhúng (${provLabel})`, bg: 'bg-indigo-100 text-indigo-700 border-indigo-200 font-extrabold', icon: ExternalLink };
+      }
       default:
         return { label: 'Bài Giảng Tương Tác', bg: 'bg-orange-100 text-orange-700 border-orange-200', icon: Sparkles };
     }
