@@ -692,6 +692,59 @@ CREATE POLICY "Allow public insert ai_tutor_messages"
   WITH CHECK (true);
 
 
+-- ====================================================================
+-- 17. EMBEDDED IFRAME GAMES TABLE (WORDWALL, QUIZIZZ, KAHOOT, CANVA, GENIALLY)
+-- Quản lý các trò chơi và bài giảng nhúng ngoại bằng iFrame mượt mà
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.embedded_games (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  material_id UUID REFERENCES public.materials(id) ON DELETE SET NULL,
+  grade_slug TEXT NOT NULL DEFAULT 'lop-1',
+  subject TEXT NOT NULL DEFAULT 'Toán học',
+  title TEXT NOT NULL,
+  description TEXT,
+  provider TEXT NOT NULL CHECK (provider IN ('wordwall', 'quizizz', 'kahoot', 'canva', 'genially', 'youtube', 'custom')),
+  embed_url TEXT NOT NULL,
+  original_url TEXT,
+  aspect_ratio TEXT DEFAULT '16:9',
+  xp_reward INT DEFAULT 50,
+  duration_minutes INT DEFAULT 10,
+  allow_fullscreen BOOLEAN DEFAULT true,
+  author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  author_name TEXT DEFAULT 'Giáo viên',
+  tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+  play_count INT DEFAULT 0,
+  is_published BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_embed_games_grade ON public.embedded_games(grade_slug);
+CREATE INDEX IF NOT EXISTS idx_embed_games_subject ON public.embedded_games(subject);
+CREATE INDEX IF NOT EXISTS idx_embed_games_provider ON public.embedded_games(provider);
+CREATE INDEX IF NOT EXISTS idx_embed_games_created ON public.embedded_games(created_at DESC);
+
+ALTER TABLE public.embedded_games ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select on embedded_games"
+  ON public.embedded_games FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to insert embedded_games"
+  ON public.embedded_games FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow teachers and admins to update embedded_games"
+  ON public.embedded_games FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Allow teachers and admins to delete embedded_games"
+  ON public.embedded_games FOR DELETE
+  USING (true);
+
+
+
 
 
 
