@@ -1,0 +1,67 @@
+{
+  "name": "Đồng Hành Cùng Con Trưởng Thành - VuiHoc AI",
+  "short_name": "VuiHoc Tiểu Học",
+  "description": "Hệ thống Web App Học tập & Quản lý Giáo dục Tiểu học AI (Lớp 1 đến Lớp 5) - Hỗ trợ cài đặt Native & Đồng bộ Database ngoại tuyến",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/?source=pwa",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#FF6600",
+  "background_color": "#FFF9F3",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["education", "kids", "books"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Bảng Xếp Hạng XP 🏆",
+      "short_name": "BXH",
+      "description": "Xem bảng vinh danh học sinh xuất sắc và điểm XP",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Thư Viện Game Mini 🎮",
+      "short_name": "Game",
+      "description": "Trò chơi học tập tương tác: Lật thẻ, Khung chữ, Vòng quay",
+      "url": "/games",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Thời Khóa Biểu 📅",
+      "short_name": "Lịch học",
+      "description": "Xem lịch học và nhận thông báo nhắc nhở",
+      "url": "/schedule",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Góc Học Tập Lớp 1 🎒",
+      "short_name": "Lớp 1",
+      "description": "Kho học liệu SGK bảo vệ bản quyền",
+      "url": "/grade/lop-1",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
