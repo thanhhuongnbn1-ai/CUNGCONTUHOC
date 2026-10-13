@@ -83,6 +83,21 @@ export const GradeDetail = ({ userProfile }) => {
             ],
             moralLesson: 'Mỗi cuốn sách là một kho báu tri thức vô giá!'
           }
+        },
+        {
+          id: `demo-${gradeSlug}-iframe`,
+          grade_id: gradeSlug,
+          subject: 'Toán học',
+          title: `Đấu Trường Trò Chơi Tương Tác Nhúng (Wordwall / Quizizz - ${gradeInfo.title})`,
+          description: 'Trò chơi kéo thả và thi đấu tốc độ nhúng trực tiếp qua chuẩn W3C iFrame mượt mà.',
+          content_type: 'iframe_embed',
+          iframe_url: 'https://wordwall.net/embed/4a1c5b8b8d4f4e249f7e53f191f4d96a?themeId=1&templateId=5&fontStackId=0',
+          source_url: 'https://wordwall.net/resource/4a1c5b8b8d4f4e249f7e53f191f4d96a',
+          ai_generated_content: {
+            provider: 'wordwall',
+            xpReward: 50,
+            durationMinutes: 10
+          }
         }
       ]);
       setLoading(false);
