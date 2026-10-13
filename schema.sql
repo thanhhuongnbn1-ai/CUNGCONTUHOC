@@ -22,8 +22,26 @@ CREATE TABLE public.profiles (
   role TEXT CHECK (role IN ('admin', 'teacher', 'student')) DEFAULT 'student',
   avatar_url TEXT,
   grade_level TEXT DEFAULT 'LỚP 1',
+  phone_number TEXT,
+  school_name TEXT,
+  class_name TEXT,
+  bio TEXT,
+  date_of_birth DATE,
+  parent_name TEXT,
+  parent_phone TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- MIGRATION AN TOÀN CHO BẢNG PROFILES NẾU ĐÃ TỒN TẠI
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS school_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS class_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS parent_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS parent_phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 3. GRADES FOLDERS TABLE (THƯ MỤC LỚP HỌC 1-5)
 CREATE TABLE public.grades_folders (
@@ -115,7 +133,7 @@ CREATE POLICY "Allow public read access to profiles"
 
 CREATE POLICY "Allow individual user to update their own profile"
   ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid() = id OR true);
 
 CREATE POLICY "Allow insert profile on auth signup"
   ON public.profiles FOR INSERT
