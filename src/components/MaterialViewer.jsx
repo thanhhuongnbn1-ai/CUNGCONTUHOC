@@ -11,6 +11,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { MultiTypeExamViewer } from './MultiTypeExamViewer';
 import { autoGradingService } from '../lib/autoGradingService';
 import { InstantScoreModal } from './InstantScoreModal';
+import { IframeGamePlayer } from './IframeGamePlayer';
 
 export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Triết', onBack }) => {
   const [activeTab, setActiveTab] = useState('lesson');
@@ -438,22 +439,14 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
           </div>
         )}
 
-        {/* 4. IFRAME EMBED (QUIZIZZ, WORDWALL, HTML5 IFRAME VỚI CHỐNG TẢI) */}
+        {/* 4. IFRAME EMBED (WORDWALL, QUIZIZZ, KAHOOT, CANVA, GENIALLY) */}
         {(material?.content_type === 'iframe_embed' || material?.iframe_url) && (
-          <div className="space-y-4">
-            <div className="w-full aspect-video rounded-3xl overflow-hidden border-4 border-orange-300 shadow-xl bg-black relative">
-              <iframe
-                src={material.iframe_url || 'https://wordwall.net/embed/4a1c5b8b8d4f4e249f7e53f191f4d96a?themeId=1&templateId=5&fontStackId=0'}
-                title={material.title}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-            <p className="text-center text-xs text-gray-500 font-bold">
-              * Khóa nút tải file & Video/iFrame được bảo mật. Điểm số từ HTML5 Game tự động bắt qua SDK!
-            </p>
-          </div>
+          <IframeGamePlayer
+            material={material}
+            studentId={studentId}
+            studentName={studentName}
+            onBack={onBack}
+          />
         )}
 
         {/* 5. SECURE PDF / VIDEO VIEWER */}
