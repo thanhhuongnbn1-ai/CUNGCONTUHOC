@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { xpLeaderboardService } from './xpLeaderboardService';
+import { pwaSyncService } from './pwaSyncService';
 
 const LOCAL_STORAGE_SUBMISSIONS_KEY = 'edtech_auto_graded_submissions';
 const LOCAL_STORAGE_PROGRESS_KEY = 'edtech_student_progress_local';
@@ -339,27 +340,34 @@ export const autoGradingService = {
       console.warn('LocalStorage save error:', e);
     }
 
-    // 3. Đồng bộ vào Supabase Database
+    // 3. Đồng bộ vào Supabase Database (hoặc xếp vào PWA Offline Queue)
     let supabaseSynced = false;
-    if (material?.id && isSupabaseConfigured()) {
-      try {
-        const isRealUser = studentId && studentId !== 'demo-student' && !studentId.startsWith('demo-');
+    const isRealUser = studentId && studentId !== 'demo-student' && !studentId.startsWith('demo-');
+    const examSubmissionPayload = {
+      material_id: material?.id || null,
+      student_id: isRealUser ? studentId : null,
+      student_name: studentName,
+      answers,
+      scores_breakdown: result.breakdown,
+      total_score: result.score100,
+      max_score: 100,
+      essay_submission: answers,
+      created_at: result.timestamp
+    };
 
+    if (material?.id && isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
+      try {
         // Ghi vào exam_submissions
         const { error: subErr } = await supabase
           .from('exam_submissions')
-          .insert({
-            material_id: material.id,
-            student_id: isRealUser ? studentId : null,
-            student_name: studentName,
-            answers,
-            scores_breakdown: result.breakdown,
-            total_score: result.score100,
-            max_score: 100,
-            essay_submission: answers
-          });
+          .insert([examSubmissionPayload]);
 
-        if (!subErr) supabaseSynced = true;
+        if (subErr) {
+          console.warn('Sync exam submission error, queuing to PWA:', subErr.message);
+          pwaSyncService.enqueueOfflineAction({ type: 'sync_exam_submission', table: 'exam_submissions', data: examSubmissionPayload });
+        } else {
+          supabaseSynced = true;
+        }
 
         // Ghi vào student_progress
         if (isRealUser) {
@@ -386,8 +394,12 @@ export const autoGradingService = {
             .catch(() => {});
         }
       } catch (dbErr) {
-        console.warn('Sync to Supabase error:', dbErr);
+        console.warn('Sync to Supabase error, queuing to PWA:', dbErr);
+        pwaSyncService.enqueueOfflineAction({ type: 'sync_exam_submission', table: 'exam_submissions', data: examSubmissionPayload });
       }
+    } else if (material?.id) {
+      // Offline mode: automatically enqueue for background sync
+      pwaSyncService.enqueueOfflineAction({ type: 'sync_exam_submission', table: 'exam_submissions', data: examSubmissionPayload });
     }
 
     // 4. Tự động thưởng điểm XP cho học sinh & đồng bộ Bảng Xếp Hạng
