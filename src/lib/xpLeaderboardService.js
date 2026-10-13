@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { pwaSyncService } from './pwaSyncService';
 
 const LOCAL_STORAGE_XP_LOGS = 'edtech_student_xp_logs';
 
@@ -230,27 +231,37 @@ export const xpLeaderboardService = {
       console.warn('LocalStorage save XP error:', e);
     }
 
-    // 2. Đồng bộ vào Supabase nếu cấu hình
-    if (isSupabaseConfigured()) {
+    // 2. Đồng bộ vào Supabase nếu cấu hình (hoặc xếp vào PWA Offline Queue)
+    const isRealUser = studentId && studentId !== 'demo-student' && !studentId.startsWith('demo-');
+    const isRealTeacher = teacherId && teacherId !== 'demo-teacher' && !teacherId.startsWith('demo-');
+    const dbPayload = {
+      student_id: isRealUser ? studentId : null,
+      student_name: studentName,
+      grade_level: gradeLevel,
+      avatar_url: avatarUrl,
+      xp_amount: Number(xpAmount),
+      activity_type: activityType,
+      activity_title: activityTitle,
+      teacher_id: isRealTeacher ? teacherId : null,
+      teacher_name: teacherName,
+      reason: reason || activityTitle,
+      created_at: xpLog.created_at
+    };
+
+    if (isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
-        const isRealUser = studentId && studentId !== 'demo-student' && !studentId.startsWith('demo-');
-        const isRealTeacher = teacherId && teacherId !== 'demo-teacher' && !teacherId.startsWith('demo-');
-        
-        await supabase.from('student_xp_logs').insert({
-          student_id: isRealUser ? studentId : null,
-          student_name: studentName,
-          grade_level: gradeLevel,
-          avatar_url: avatarUrl,
-          xp_amount: Number(xpAmount),
-          activity_type: activityType,
-          activity_title: activityTitle,
-          teacher_id: isRealTeacher ? teacherId : null,
-          teacher_name: teacherName,
-          reason: reason || activityTitle
-        }).catch(() => {});
+        const { error } = await supabase.from('student_xp_logs').insert([dbPayload]);
+        if (error) {
+          console.warn('Sync XP to Supabase failed, queuing to PWA Offline Queue:', error.message);
+          pwaSyncService.enqueueOfflineAction({ type: 'sync_xp', table: 'student_xp_logs', data: dbPayload });
+        }
       } catch (err) {
-        console.warn('Sync XP to Supabase error:', err);
+        console.warn('Sync XP to Supabase network error, queuing to PWA Offline Queue:', err);
+        pwaSyncService.enqueueOfflineAction({ type: 'sync_xp', table: 'student_xp_logs', data: dbPayload });
       }
+    } else {
+      // Offline mode: automatically enqueue for background sync
+      pwaSyncService.enqueueOfflineAction({ type: 'sync_xp', table: 'student_xp_logs', data: dbPayload });
     }
 
     // 3. Bắn event trình duyệt để hiện Toast thông báo nhận XP
