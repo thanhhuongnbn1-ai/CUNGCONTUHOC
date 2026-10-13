@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { GradeWorkspaces } from '../components/GradeWorkspaces';
 import { MaterialCard } from '../components/MaterialCard';
 import { MaterialViewer } from '../components/MaterialViewer';
-import { Sparkles, ShieldCheck, Bot, Layers, ArrowRight, BookOpen, ExternalLink, Gamepad2, Award, Trophy, Crown, Star } from 'lucide-react';
+import { Sparkles, ShieldCheck, Bot, Layers, ArrowRight, BookOpen, ExternalLink, Gamepad2, Award, Trophy, Crown, Star, Download, Smartphone, Laptop, WifiOff, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { pwaSyncService } from '../lib/pwaSyncService';
 
 // Seed sample production fallback materials if DB is initial
 const INITIAL_DEMO_MATERIALS = [
@@ -251,6 +252,46 @@ export const Home = ({ userProfile, onOpenAuth }) => {
             <span>Xem Toàn Bộ BXH</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
+        </div>
+      </section>
+
+      {/* PWA NATIVE APP BANNER SECTION */}
+      <section className="max-w-7xl mx-auto px-4 py-2">
+        <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-orange-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border-2 border-orange-400/40">
+          <div className="space-y-2 text-center md:text-left max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 bg-white/20 text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider">
+              <Smartphone className="w-4 h-4 text-yellow-300" />
+              <span>PROGRESSIVE WEB APP (PWA) CHUẨN NATIVE</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-black text-white">
+              Cài Đặt VuiHoc Về Điện Thoại & Máy Tính 📲
+            </h3>
+            <p className="text-purple-200 text-xs sm:text-sm font-medium leading-relaxed">
+              Mở 1 chạm từ màn hình chính như ứng dụng Native. Học tập & làm bài ngoại tuyến không lo rớt mạng, tự động đồng bộ điểm số lên Database Supabase khi có kết nối Internet!
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-1 text-xs text-orange-200 font-bold">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Dung lượng nhẹ (&lt;5MB)
+              </span>
+              <span className="flex items-center gap-1">
+                <WifiOff className="w-3.5 h-3.5 text-yellow-400" /> Học Ngoại Tuyến (Offline)
+              </span>
+              <span className="flex items-center gap-1">
+                <RefreshCw className="w-3.5 h-3.5 text-cyan-400" /> Tự động Đồng bộ CSDL
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-shrink-0">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open_pwa_install_modal'))}
+              className="bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs sm:text-sm px-7 py-4 rounded-2xl shadow-xl kid-btn flex items-center gap-2.5 transition transform active:scale-95 border-2 border-white/50"
+            >
+              <Download className="w-5 h-5 text-orange-700" />
+              <span>Cài Đặt Ứng Dụng Ngay</span>
+            </button>
+          </div>
         </div>
       </section>
 
