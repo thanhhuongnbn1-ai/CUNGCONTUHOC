@@ -576,4 +576,60 @@ CREATE POLICY "Allow teachers to insert bonus student_xp_logs"
   WITH CHECK (true);
 
 
+-- ====================================================================
+-- 15. PWA (PROGRESSIVE WEB APP) INSTALLATIONS & OFFLINE DB SYNC
+-- Lưu vết thiết bị cài đặt PWA Native và nhật ký đồng bộ CSDL khi khôi phục mạng
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.pwa_installations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  user_name TEXT,
+  device_platform TEXT, -- 'android', 'ios', 'windows', 'macos', 'linux', 'unknown'
+  device_type TEXT,     -- 'mobile', 'tablet', 'desktop'
+  user_agent TEXT,
+  installed_at TIMESTAMPTZ DEFAULT NOW(),
+  last_active_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pwa_installs_user ON public.pwa_installations(user_id);
+CREATE INDEX IF NOT EXISTS idx_pwa_installs_time ON public.pwa_installations(installed_at DESC);
+
+ALTER TABLE public.pwa_installations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert pwa_installations"
+  ON public.pwa_installations FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public select pwa_installations"
+  ON public.pwa_installations FOR SELECT
+  USING (true);
+
+
+CREATE TABLE IF NOT EXISTS public.pwa_sync_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  user_name TEXT,
+  action_type TEXT NOT NULL, -- 'sync_xp', 'sync_game_score', 'sync_exam_submission', 'sync_assignment'
+  records_count INT DEFAULT 1,
+  payload JSONB DEFAULT '{}'::jsonb,
+  status TEXT DEFAULT 'success', -- 'success', 'pending', 'failed'
+  synced_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pwa_sync_user ON public.pwa_sync_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_pwa_sync_time ON public.pwa_sync_logs(synced_at DESC);
+
+ALTER TABLE public.pwa_sync_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert pwa_sync_logs"
+  ON public.pwa_sync_logs FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public select pwa_sync_logs"
+  ON public.pwa_sync_logs FOR SELECT
+  USING (true);
+
+
+
 
