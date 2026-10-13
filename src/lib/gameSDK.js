@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import confetti from 'canvas-confetti';
 import { xpLeaderboardService } from './xpLeaderboardService';
+import { pwaSyncService } from './pwaSyncService';
 
 /**
  * EDTECH HTML5 GAME SDK
@@ -97,23 +98,27 @@ class EdTechGameSDKManager {
       });
     }
 
-    // 1. Đồng bộ vào Database Supabase (nếu có cấu hình)
-    if (this.studentId && this.materialId && isSupabaseConfigured()) {
+    // 1. Đồng bộ vào Database Supabase (hoặc xếp vào PWA Offline Queue)
+    const scorePayload = {
+      student_id: this.studentId,
+      material_id: this.materialId,
+      score: finalScore,
+      max_score: maxScore,
+      time_spent_seconds: timeSpentSeconds,
+      game_metadata: metadata,
+      created_at: new Date().toISOString()
+    };
+
+    if (this.studentId && this.materialId && isSupabaseConfigured() && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         // Ghi vào bảng game_scores (lịch sử chơi game)
         const { error: gameScoreErr } = await supabase
           .from('game_scores')
-          .insert({
-            student_id: this.studentId,
-            material_id: this.materialId,
-            score: finalScore,
-            max_score: maxScore,
-            time_spent_seconds: timeSpentSeconds,
-            game_metadata: metadata
-          });
+          .insert([scorePayload]);
 
         if (gameScoreErr) {
-          console.warn('[GameSDK] Supabase game_scores insert warning:', gameScoreErr.message);
+          console.warn('[GameSDK] Supabase game_scores insert warning, queuing to PWA:', gameScoreErr.message);
+          pwaSyncService.enqueueOfflineAction({ type: 'sync_game_score', table: 'game_scores', data: scorePayload });
         }
 
         // Cập nhật bảng student_progress (tiến độ học tập)
@@ -128,14 +133,16 @@ class EdTechGameSDKManager {
             completed_at: new Date().toISOString()
           }, { onConflict: 'student_id,material_id' });
 
-        if (progressErr) {
-          console.warn('[GameSDK] Supabase student_progress upsert warning:', progressErr.message);
-        } else {
+        if (!gameScoreErr && !progressErr) {
           console.log('✅ [GameSDK] Successfully synced game score with Supabase DB!');
         }
       } catch (err) {
-        console.error('[GameSDK] DB sync error:', err);
+        console.error('[GameSDK] DB sync error, queuing to PWA:', err);
+        pwaSyncService.enqueueOfflineAction({ type: 'sync_game_score', table: 'game_scores', data: scorePayload });
       }
+    } else if (this.studentId && this.materialId) {
+      // Offline fallback: xếp vào PWA Sync Queue
+      pwaSyncService.enqueueOfflineAction({ type: 'sync_game_score', table: 'game_scores', data: scorePayload });
     }
 
     // 2. Lưu cache local storage
