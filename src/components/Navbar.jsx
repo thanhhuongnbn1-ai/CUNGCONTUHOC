@@ -1,9 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2, Trophy } from 'lucide-react';
+import { BookOpen, Sparkles, BarChart3, User, LogOut, GraduationCap, Users, Calendar, Gamepad2, Trophy, Download, Smartphone, WifiOff } from 'lucide-react';
+import { pwaSyncService } from '../lib/pwaSyncService';
 
-export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
+export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout, onOpenInstallModal }) => {
   const location = useLocation();
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    setIsStandalone(pwaSyncService.isStandalone());
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+    const handleNetwork = (e) => setIsOnline(e.detail.isOnline);
+    window.addEventListener('pwa_network_status', handleNetwork);
+    return () => window.removeEventListener('pwa_network_status', handleNetwork);
+  }, []);
 
   const isActive = (path) => location.pathname === path;
 
@@ -113,6 +125,30 @@ export const Navbar = ({ userProfile, onOpenAuth, onRoleSwitch, onLogout }) => {
 
           {/* Right Action Profile & Role Switcher */}
           <div className="flex items-center gap-2">
+            
+            {/* PWA Native Install Button */}
+            <button
+              onClick={onOpenInstallModal}
+              className={`font-black text-xs px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 transition transform active:scale-95 border whitespace-nowrap ${
+                isStandalone
+                  ? 'bg-emerald-500/90 hover:bg-emerald-500 text-white border-emerald-300'
+                  : 'bg-yellow-300 hover:bg-yellow-200 text-orange-950 border-yellow-100'
+              }`}
+              title="Cài đặt Web App về màn hình điện thoại hoặc máy tính như ứng dụng Native"
+            >
+              {isStandalone ? (
+                <>
+                  <Smartphone className="w-3.5 h-3.5 text-white" />
+                  <span className="hidden sm:inline">PWA Native ✅</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5 text-orange-700" />
+                  <span>Cài App 📲</span>
+                </>
+              )}
+            </button>
+
             <div className="bg-orange-700/60 p-1 rounded-full flex items-center text-xs font-bold border border-orange-400/50">
               <span className="text-orange-200 px-2 text-[11px] hidden lg:inline">Vai trò:</span>
               <select
