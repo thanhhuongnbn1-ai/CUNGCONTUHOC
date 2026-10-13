@@ -202,11 +202,13 @@ export const MaterialViewer = ({ material, studentId, studentName = 'Bé Minh Tr
           </div>
 
           <button
-            onClick={() => setIsAiTutorOpen(!isAiTutorOpen)}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open_ai_tutor_with_material', { detail: { material } }));
+            }}
             className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm px-5 py-2.5 rounded-2xl shadow-md flex items-center gap-2 kid-btn animate-bounce-slow"
           >
             <Bot className="w-5 h-5" />
-            <span>Hỏi AI Gia Sư gợi ý</span>
+            <span>Hỏi Trợ Giảng AI</span>
           </button>
         </div>
       </div>
