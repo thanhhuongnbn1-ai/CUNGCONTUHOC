@@ -631,5 +631,67 @@ CREATE POLICY "Allow public select pwa_sync_logs"
   USING (true);
 
 
+-- ====================================================================
+-- 16. AI TUTOR CHATBOT CONVERSATIONS & MESSAGES (TRỢ GIẢNG AI BÀI HỌC)
+-- Lưu trữ lịch sử hội thoại hỏi đáp học sinh theo bài học (PPT/Word/PDF/Video/Link)
+-- ====================================================================
+
+CREATE TABLE IF NOT EXISTS public.ai_tutor_conversations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_name TEXT DEFAULT 'Học sinh',
+  material_id UUID REFERENCES public.materials(id) ON DELETE SET NULL,
+  material_title TEXT DEFAULT 'Bài học chung',
+  subject TEXT DEFAULT 'Toán học',
+  file_type TEXT DEFAULT 'pdf', -- 'pdf', 'word', 'ppt', 'video', 'link', 'interactive'
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_conv_student ON public.ai_tutor_conversations(student_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conv_material ON public.ai_tutor_conversations(material_id);
+CREATE INDEX IF NOT EXISTS idx_ai_conv_updated ON public.ai_tutor_conversations(updated_at DESC);
+
+ALTER TABLE public.ai_tutor_conversations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select ai_tutor_conversations"
+  ON public.ai_tutor_conversations FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow public insert ai_tutor_conversations"
+  ON public.ai_tutor_conversations FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow public update ai_tutor_conversations"
+  ON public.ai_tutor_conversations FOR UPDATE
+  USING (true);
+
+
+CREATE TABLE IF NOT EXISTS public.ai_tutor_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  conversation_id UUID REFERENCES public.ai_tutor_conversations(id) ON DELETE CASCADE,
+  sender TEXT NOT NULL CHECK (sender IN ('student', 'ai', 'system')),
+  message_text TEXT NOT NULL,
+  material_context TEXT,
+  file_type TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_msg_conv ON public.ai_tutor_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_ai_msg_created ON public.ai_tutor_messages(created_at);
+
+ALTER TABLE public.ai_tutor_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select ai_tutor_messages"
+  ON public.ai_tutor_messages FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow public insert ai_tutor_messages"
+  ON public.ai_tutor_messages FOR INSERT
+  WITH CHECK (true);
+
+
+
 
 
