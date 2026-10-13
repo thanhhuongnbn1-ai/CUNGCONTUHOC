@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Sparkles, FileText, ExternalLink, Gamepad2, HelpCircle, BookOpen, CheckCircle, RefreshCw, Upload, Image as ImageIcon, PlusCircle, CheckSquare, ListOrdered, Edit3, Gift } from 'lucide-react';
 import { ExamCreatorModal } from '../components/ExamCreatorModal';
 import TeacherAwardBonusModal from '../components/TeacherAwardBonusModal';
+import IframeEmbedStudio from '../components/IframeEmbedStudio';
 
 export const TeacherStudio = ({ userProfile }) => {
   const [studioMode, setStudioMode] = useState('ai_generator'); // 'ai_generator' | 'iframe_embed' | 'multi_type_exam'
@@ -343,95 +344,10 @@ export const TeacherStudio = ({ userProfile }) => {
 
         </div>
       ) : studioMode === 'iframe_embed' ? (
-        /* iFrame Embed Studio Form */
-        <div className="bg-white p-8 rounded-3xl border-2 border-orange-100 shadow-md max-w-3xl mx-auto space-y-6">
-          <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
-            <ExternalLink className="w-6 h-6 text-[#FF6600]" />
-            Nhúng Trò Chơi / Bài Giảng iFrame (Quizizz, Wordwall, YouTube...)
-          </h3>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-extrabold text-gray-700 mb-1">Khối Lớp</label>
-                <select
-                  value={gradeSlug}
-                  onChange={(e) => setGradeSlug(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-bold"
-                >
-                  <option value="tien-lop-1">Tiền Lớp 1</option>
-                  <option value="lop-1">Lớp 1</option>
-                  <option value="lop-2">Lớp 2</option>
-                  <option value="lop-3">Lớp 3</option>
-                  <option value="lop-4">Lớp 4</option>
-                  <option value="lop-5">Lớp 5</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-extrabold text-gray-700 mb-1">Môn Học</label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs font-bold"
-                >
-                  <option value="Toán học">Toán học 🔢</option>
-                  <option value="Tiếng Việt">Tiếng Việt 📖</option>
-                  <option value="Tiếng Anh">Tiếng Anh 🔤</option>
-                  <option value="Khoa học">Khoa học 🧪</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-gray-700 mb-1">Tiêu Đề Trò Chơi / Bài Học</label>
-              <input
-                type="text"
-                value={embedTitle}
-                onChange={(e) => setEmbedTitle(e.target.value)}
-                placeholder="Ví dụ: Đấu trường ghép từ vựng Wordwall Tiếng Anh 1"
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-gray-700 mb-1">Đường Dẫn iFrame URL (Embed Link)</label>
-              <input
-                type="url"
-                value={embedUrl}
-                onChange={(e) => setEmbedUrl(e.target.value)}
-                placeholder="https://wordwall.net/embed/..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold text-gray-700 mb-1">Mô Tả Bài Học</label>
-              <textarea
-                rows={3}
-                value={embedDescription}
-                onChange={(e) => setEmbedDescription(e.target.value)}
-                placeholder="Mô tả nhiệm vụ cho học sinh..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-medium"
-              />
-            </div>
-
-            <button
-              onClick={handleSaveToDB}
-              disabled={!embedTitle || !embedUrl}
-              className="w-full bg-[#FF6600] hover:bg-orange-600 disabled:opacity-50 text-white font-black text-base py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-2 kid-btn"
-            >
-              <CheckCircle className="w-5 h-5" />
-              <span>Đăng Tải iFrame Embed Vào Supabase DB</span>
-            </button>
-
-            {saveSuccess && (
-              <p className="text-center text-xs font-black text-emerald-600 mt-2">
-                🎉 Đã lưu trò chơi nhúng iFrame thành công!
-              </p>
-            )}
-          </div>
-        </div>
+        <IframeEmbedStudio
+          userProfile={userProfile}
+          onSaved={() => setSaveSuccess(true)}
+        />
       ) : (
         /* Multi-Type Exam Dashboard & Creator Trigger */
         <div className="bg-white p-8 rounded-3xl border-2 border-orange-100 shadow-md max-w-4xl mx-auto space-y-8 animate-fade-in">
