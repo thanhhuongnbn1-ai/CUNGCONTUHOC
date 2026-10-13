@@ -13,6 +13,7 @@ import AuthModal from './pages/AuthModal';
 import XpNotificationToast from './components/XpNotificationToast';
 import PwaInstallModal from './components/PwaInstallModal';
 import OfflineSyncBanner from './components/OfflineSyncBanner';
+import AiTutorChatWidget from './components/AiTutorChatWidget';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 export function App() {
@@ -135,6 +136,9 @@ export function App() {
 
         {/* Global XP Awarding Toast */}
         <XpNotificationToast />
+
+        {/* AI Chatbot Trợ Giảng Thông Minh (Floating Góc Màn Hình) */}
+        <AiTutorChatWidget userProfile={userProfile} />
 
         <footer className="bg-gray-900 text-gray-400 py-8 px-4 text-center border-t border-gray-800 text-xs font-medium">
           <div className="max-w-6xl mx-auto space-y-2">
