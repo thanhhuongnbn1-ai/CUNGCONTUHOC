@@ -239,6 +239,12 @@ class PwaSyncService {
         } else if (item.table_name === 'exam_submissions') {
           const { error } = await supabase.from('exam_submissions').insert([item.payload]);
           if (!error) isSuccess = true;
+        } else if (item.table_name === 'profiles' || item.action_type === 'UPDATE_PROFILE') {
+          const { id, ...fieldsToUpdate } = item.payload;
+          if (id) {
+            const { error } = await supabase.from('profiles').update(fieldsToUpdate).eq('id', id);
+            if (!error) isSuccess = true;
+          }
         } else if (item.table_name) {
           const { error } = await supabase.from(item.table_name).insert([item.payload]);
           if (!error) isSuccess = true;
